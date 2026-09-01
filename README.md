@@ -1,98 +1,189 @@
 # docker.scad-toolchain.test
 
-Versioned external test harness for `ghcr.io/brainboxemb/scad-toolchain`.
+> **Test results**
+>
+> - Latest successful test: https://brainboxemb.github.io/docker.scad-toolchain.test/latest/
+> - Versioned results: `https://brainboxemb.github.io/docker.scad-toolchain.test/<test-suite-tag>/`
+> - Example: https://brainboxemb.github.io/docker.scad-toolchain.test/v0.1.1/
 
-This repository validates a **published** SCAD toolchain image from the point of
-view of a real consumer repository. It is intentionally separate from
-`docker.scad-toolchain` so that tests do not accidentally pass only because
-they run inside the image build repository.
+Versioned external validation suite for `ghcr.io/brainboxemb/scad-toolchain`.
 
-## Versioning model
+This repository tests a **published** SCAD toolchain image from a separate
+consumer repository. It therefore verifies what a real CAD repository will
+actually see: public commands, rendering behavior and export behavior.
 
-The test suite and the toolchain are versioned independently.
+## Why this repository exists
 
-A test-suite release records the exact toolchain image it targets.
+The responsibilities are deliberately separated:
 
-Example:
+```text
+docker.scad-toolchain
+        |
+        | publishes
+        v
+ghcr.io/brainboxemb/scad-toolchain:vX.Y.Z
+        |
+        | consumed by
+        v
+docker.scad-toolchain.test
+        |
+        | validates and publishes reports
+        v
+GitHub Pages
+```
+
+The toolchain repository proves that the image can be built.
+
+This repository proves that the **published image can actually be consumed**.
+
+## Version model
+
+The test suite and toolchain have independent version histories.
+
+Every released test-suite tag records which toolchain version it targets in
+`toolchain.env`.
+
+For example:
 
 | Test suite | Target toolchain |
 |---|---|
-| `v0.1.0` | `ghcr.io/brainboxemb/scad-toolchain:v0.1.0` |
-| `v0.1.1` | `ghcr.io/brainboxemb/scad-toolchain:v0.1.0` |
-| `v0.2.0` | `ghcr.io/brainboxemb/scad-toolchain:v0.2.0` |
+| `v0.1.0` | `v0.1.0` |
+| `v0.1.1` | `v0.1.1` |
+| `v0.1.2` | `v0.1.1` |
+| `v0.2.0` | `v0.2.0` |
 
-There is **no requirement** that test suite `v0.2.x` remains compatible with
-toolchain `v0.1.x`.
+A newer test suite is **not required** to work with older toolchain images.
 
-The important relation is:
+That is intentional.
 
-```text
-test-suite release
-        |
-        +-- TARGET_TOOLCHAIN_VERSION
-                |
-                +-- published GHCR image
-```
+For example, test-suite `v0.2.0` may test new PythonSCAD behavior that does not
+exist in toolchain `v0.1.1`.
 
-This makes historical validation reproducible.
+## Current target
 
-## Current release line
-
-This repository is prepared for:
-
-```text
-test suite       : v0.1.1
-target toolchain : v0.1.1
-image            : ghcr.io/brainboxemb/scad-toolchain:v0.1.1
-```
-
-The target is stored in:
+The current repository configuration is stored in:
 
 ```text
 toolchain.env
 ```
 
-Do not silently change the target of an already released test-suite tag.
+and currently targets:
 
-## What is tested
+```text
+SCAD_TOOLCHAIN_IMAGE=ghcr.io/brainboxemb/scad-toolchain
+SCAD_TOOLCHAIN_VERSION=v0.1.1
+```
 
-The first suite performs consumer-style smoke tests.
+## Permanent results per test-suite tag
 
-### Runtime
+When a tag is pushed, for example:
 
-- `scad-toolchain-info`
-- `openscad --version`
-- Python availability
-- PythonSCAD CLI/version
-- PythonSCAD embedded-Python model execution
+```text
+v0.1.1
+```
+
+the workflow:
+
+1. pulls the configured SCAD toolchain image;
+2. runs the complete test suite;
+3. generates an HTML report;
+4. publishes that report under a version-specific directory on GitHub Pages.
+
+The resulting URL is:
+
+```text
+https://brainboxemb.github.io/docker.scad-toolchain.test/v0.1.1/
+```
+
+That directory is kept when later versions are published.
+
+So after several releases the Pages site can contain:
+
+```text
+/
+├── latest/
+├── v0.1.1/
+├── v0.1.2/
+└── v0.2.0/
+```
+
+This makes old test evidence directly browsable without downloading an Actions
+artifact.
+
+## `latest`
+
+A successful workflow on `main` publishes to:
+
+```text
+/latest/
+```
+
+This is useful while developing the next test-suite release.
+
+It is **not** an immutable historical reference.
+
+For historical evidence always use the URL belonging to a Git tag, for example:
+
+```text
+/v0.1.1/
+```
+
+## What the report contains
+
+The generated report records:
+
+- test-suite version;
+- exact toolchain image and version;
+- OpenSCAD version;
+- PythonSCAD version;
+- Python version;
+- PASS results for the smoke tests;
+- rendered OpenSCAD PNG;
+- direct links to generated PNG/STL output.
+
+Raw output is still uploaded as an Actions artifact for debugging, but GitHub
+Pages is the normal way to inspect successful results.
+
+## Tests
+
+### Runtime interface
+
+The suite checks that these public commands are usable:
+
+```text
+openscad
+pythonscad
+python3
+scad-toolchain-info
+```
 
 ### OpenSCAD
 
-- render SCAD to PNG
-- export SCAD to STL
-- verify output files exist and are non-empty
+The suite performs:
+
+```text
+SCAD -> PNG
+SCAD -> STL
+```
+
+and verifies that both files are produced.
 
 ### PythonSCAD
 
-- execute a PythonSCAD model
-- export the model
-- verify output exists and is non-empty
-
-The PythonSCAD command may evolve with the toolchain. That is exactly why this
-test repository has its own version history.
-
-
-### PythonSCAD execution model
-
-PythonSCAD Python designs are tested through the PythonSCAD executable:
+PythonSCAD is tested through its own executable and embedded Python runtime:
 
 ```bash
 pythonscad -o output.stl --trust-python model.py
 ```
 
-The `pythonscad` module is provided to Python code executed by PythonSCAD's
-embedded Python environment. The suite therefore does **not** require
-`python3 -c 'import pythonscad'` to work in the operating system Python.
+The suite deliberately does not require:
+
+```bash
+python3 -c 'import pythonscad'
+```
+
+because the PythonSCAD module belongs to the Python environment embedded in
+PythonSCAD, not necessarily the operating-system Python installation.
 
 ## Repository layout
 
@@ -101,7 +192,8 @@ docker.scad-toolchain.test/
 ├── README.md
 ├── toolchain.env
 ├── scripts/
-│   └── run-tests.sh
+│   ├── run-tests.sh
+│   └── build-report.sh
 ├── test/
 │   ├── openscad/
 │   │   └── smoke.scad
@@ -112,164 +204,174 @@ docker.scad-toolchain.test/
         └── test.yml
 ```
 
-Generated test output is written to `out/` and is not committed.
-
-## Running locally
-
-You need Docker and access to the target GHCR image.
-
-Load the configured version:
-
-```bash
-source toolchain.env
-```
-
-Pull the exact image:
-
-```bash
-docker pull "${SCAD_TOOLCHAIN_IMAGE}:${SCAD_TOOLCHAIN_VERSION}"
-```
-
-Run the suite:
-
-```bash
-docker run --rm \
-  -v "$PWD:/work" \
-  -w /work \
-  "${SCAD_TOOLCHAIN_IMAGE}:${SCAD_TOOLCHAIN_VERSION}" \
-  bash ./scripts/run-tests.sh
-```
-
-## GitHub Actions
-
-The workflow reads `toolchain.env`, logs in to GHCR and runs the tests inside
-the configured published image.
-
-The workflow runs on:
-
-- pushes to `main`
-- pull requests
-- version tags `v*`
-- manual dispatch
-
-A manual run may optionally override the toolchain version. This is useful
-while evaluating a new toolchain **before** changing `toolchain.env`.
-
-A manual override does not change the release contract stored in Git.
-
-## Preparing test-suite v0.1.0
-
-First make sure the published image exists:
+Generated directories:
 
 ```text
-ghcr.io/brainboxemb/scad-toolchain:v0.1.0
+out/     raw test output
+site/    generated HTML report
 ```
 
-Commit the test repository and push `main`.
+Neither needs to be committed to the normal source branch.
 
-Check that the GitHub Actions workflow passes.
+## First-time GitHub Pages setup
 
-Then create the test-suite tag:
+The workflow publishes the generated site to the `gh-pages` branch using
+`peaceiris/actions-gh-pages`.
+
+After the first successful publish:
+
+1. open the repository on GitHub;
+2. go to **Settings -> Pages**;
+3. under **Build and deployment**, select **Deploy from a branch**;
+4. select branch **gh-pages**;
+5. select directory **/(root)**;
+6. save.
+
+The site will then be available at:
+
+```text
+https://brainboxemb.github.io/docker.scad-toolchain.test/
+```
+
+The versioned report directories live underneath this URL.
+
+## Creating test-suite v0.1.1
+
+First verify that `main` is green against:
+
+```text
+ghcr.io/brainboxemb/scad-toolchain:v0.1.1
+```
+
+Then create the immutable test-suite tag:
 
 ```bash
-git tag -a v0.1.0 -m "SCAD toolchain test suite v0.1.0"
-git push origin v0.1.0
+git tag -a v0.1.1 -m "SCAD toolchain test suite v0.1.1"
+git push origin v0.1.1
 ```
 
-A GitHub Release page is optional. The Git tag is the important immutable
-reference.
+That tag triggers the tests again and, if successful, publishes:
 
-## Updating tests without changing the toolchain
+```text
+https://brainboxemb.github.io/docker.scad-toolchain.test/v0.1.1/
+```
 
-Suppose the toolchain remains `v0.1.0`, but the tests improve.
+## Improving tests without changing the toolchain
+
+Suppose toolchain `v0.1.1` remains unchanged but you add an additional
+verification.
 
 Keep:
 
 ```text
-SCAD_TOOLCHAIN_VERSION=v0.1.0
+SCAD_TOOLCHAIN_VERSION=v0.1.1
 ```
 
-and release, for example:
+and release the test suite as, for example:
 
 ```text
-test suite v0.1.1
+v0.1.2
 ```
 
-This gives:
+You then have two immutable validations of the same toolchain:
 
 ```text
-toolchain v0.1.0
-tested by:
-  - test suite v0.1.0
-  - test suite v0.1.1
+test suite v0.1.1 -> toolchain v0.1.1
+test suite v0.1.2 -> toolchain v0.1.1
 ```
 
-## Testing a new toolchain
-
-Suppose `docker.scad-toolchain` publishes:
+with separate reports:
 
 ```text
-ghcr.io/brainboxemb/scad-toolchain:v0.2.0
+/v0.1.1/
+/v0.1.2/
 ```
 
-Before changing the repository, use **Run workflow** and enter:
+## Testing the next toolchain before releasing the suite
+
+The workflow supports manual dispatch.
+
+Open:
+
+```text
+Actions -> Test published SCAD toolchain -> Run workflow
+```
+
+and enter a temporary toolchain version, for example:
 
 ```text
 v0.2.0
 ```
 
-If necessary, adapt the test suite on a branch.
+This lets you evaluate the next image before updating `toolchain.env`.
 
-When the new test contract is ready:
+A manual override is development/testing only. It does not change the immutable
+relationship stored in a released Git tag.
 
-1. Change `toolchain.env` to `v0.2.0`.
-2. Update tests as needed.
-3. Merge and verify the workflow.
-4. Tag the test repository as `v0.2.0` (or another chosen test-suite version).
+## Moving to a new toolchain line
 
-The new suite is allowed to rely on behavior only available in toolchain
-`v0.2.0`.
+When `docker.scad-toolchain` publishes `v0.2.0`:
+
+1. test `v0.2.0` through manual workflow dispatch;
+2. adapt the tests if required;
+3. change `toolchain.env` to `v0.2.0`;
+4. commit and push;
+5. verify `/latest/`;
+6. create the new test-suite tag;
+7. verify the corresponding versioned Pages URL.
+
+For example:
+
+```text
+test suite v0.2.0
+toolchain  v0.2.0
+report     /v0.2.0/
+```
+
+The `v0.2.x` suite does not need to support toolchain `v0.1.x`.
 
 ## Historical traceability
 
-A CAD project can record:
+A consuming CAD repository can eventually document:
 
 ```text
-SCAD toolchain : v0.1.0
+SCAD toolchain : v0.1.1
 validated by   : docker.scad-toolchain.test v0.1.1
+results        : https://brainboxemb.github.io/docker.scad-toolchain.test/v0.1.1/
 ```
 
-That is stronger than merely saying that a CI run was green at some point:
-both the runtime and the test definition are immutable Git/package versions.
+That provides three immutable references:
 
-## Removing a test-suite version
+1. the GHCR toolchain image version;
+2. the Git tag defining the test suite;
+3. the published test evidence.
 
-Deleting a test-suite version means deleting the Git tag (and optionally the
-GitHub Release page).
+## Deleting a test-suite version
 
-Local tag:
+Normally, released tags and their Pages results should remain available.
+
+If a tag was created by mistake:
 
 ```bash
-git tag -d v0.1.0
+git tag -d v0.1.1
+git push origin :refs/tags/v0.1.1
 ```
 
-Remote tag:
+Deleting the Git tag does **not** automatically remove its directory from the
+`gh-pages` branch.
 
-```bash
-git push origin :refs/tags/v0.1.0
-```
+Likewise, deleting a test-suite tag does not delete any SCAD toolchain package
+from GHCR. The test suite and container package are intentionally independent.
 
-Do this only when the tag was created by mistake. Published historical test
-tags should normally remain immutable.
+If a versioned Pages directory was published incorrectly, remove that directory
+from the `gh-pages` branch separately.
 
-Deleting a test-suite Git tag does **not** delete the corresponding
-`scad-toolchain` package version from GHCR. They are independent repositories
-and version stores.
+## Release rules
 
-## Release policy
-
-- Never move or overwrite an existing released Git tag.
-- Never change what an existing `toolchain.env` meant in a released tag.
-- Test-suite versions may evolve independently from toolchain versions.
-- A newer suite does not need to support older toolchains.
-- Prefer explicit versions over `latest` or `edge` for release validation.
+- Never move an existing released Git tag.
+- Never overwrite an existing historical Pages report intentionally.
+- Every released test suite must point to an explicit toolchain version.
+- Do not use `latest` or `edge` as the target for a released test-suite tag.
+- Newer test suites are free to drop compatibility with older toolchains.
+- Use `/latest/` only for current development.
+- Use `/vX.Y.Z/` for historical verification.

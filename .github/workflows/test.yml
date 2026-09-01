@@ -15,7 +15,7 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write
   packages: read
 
 jobs:
@@ -25,6 +25,7 @@ jobs:
       image: ${{ steps.config.outputs.image }}
       version: ${{ steps.config.outputs.version }}
       container: ${{ steps.config.outputs.container }}
+      suite_version: ${{ steps.config.outputs.suite_version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -41,11 +42,18 @@ jobs:
             VERSION="${OVERRIDE_VERSION}"
           fi
 
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            SUITE_VERSION="${GITHUB_REF_NAME}"
+          else
+            SUITE_VERSION="latest"
+          fi
+
           echo "image=${SCAD_TOOLCHAIN_IMAGE}" >> "$GITHUB_OUTPUT"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "container=${SCAD_TOOLCHAIN_IMAGE}:${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "suite_version=${SUITE_VERSION}" >> "$GITHUB_OUTPUT"
 
-          echo "Test suite ref : ${GITHUB_REF}"
+          echo "Test suite     : ${SUITE_VERSION}"
           echo "Toolchain      : ${SCAD_TOOLCHAIN_IMAGE}:${VERSION}"
 
   test:
@@ -60,17 +68,55 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Show target
-        run: |
-          echo "Toolchain image: ${{ needs.resolve.outputs.container }}"
-
       - name: Run external consumer tests
         run: bash ./scripts/run-tests.sh
 
-      - name: Upload test output
+      - name: Build HTML report
+        env:
+          TEST_SUITE_VERSION: ${{ needs.resolve.outputs.suite_version }}
+          SCAD_TOOLCHAIN_IMAGE: ${{ needs.resolve.outputs.image }}
+          SCAD_TOOLCHAIN_VERSION: ${{ needs.resolve.outputs.version }}
+        run: bash ./scripts/build-report.sh
+
+      - name: Upload raw test output
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: scad-toolchain-test-output
+          name: scad-toolchain-test-output-${{ needs.resolve.outputs.suite_version }}
           path: out/
           if-no-files-found: warn
+
+      - name: Upload report for publish job
+        if: success() && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: scad-toolchain-test-site
+          path: site/
+          if-no-files-found: error
+
+  publish:
+    needs: [resolve, test]
+    if: success() && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: pages-publish
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download report
+        uses: actions/download-artifact@v4
+        with:
+          name: scad-toolchain-test-site
+          path: site/
+
+      - name: Publish versioned report
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+          destination_dir: ${{ needs.resolve.outputs.suite_version }}
+          keep_files: true
+          user_name: github-actions[bot]
+          user_email: 41898282+github-actions[bot]@users.noreply.github.com
