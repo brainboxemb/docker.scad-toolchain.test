@@ -39,9 +39,21 @@ openscad   -o "${OUT}/openscad/smoke.stl"   "${ROOT}/test/openscad/smoke.scad"
 test -s "${OUT}/openscad/smoke.stl"
 
 echo
-echo "== PythonSCAD STL =="
-xvfb-run -a pythonscad   -o "${OUT}/pythonscad/smoke.stl"   --trust-python   "${ROOT}/test/pythonscad/smoke.py"
-test -s "${OUT}/pythonscad/smoke.stl"
+echo "== PythonSCAD PNG =="
+xvfb-run -a pythonscad \
+  --render \
+  --imgsize=800,600 \
+  -o "${OUT}/pythonscad/smoke.png" \
+  --trust-python \
+  "${ROOT}/test/pythonscad/smoke.py"
+test -s "${OUT}/pythonscad/smoke.png"
 
 echo
+echo "== PythonSCAD STL =="
+xvfb-run -a pythonscad \
+  -o "${OUT}/pythonscad/smoke.stl" \
+  --trust-python \
+  "${ROOT}/test/pythonscad/smoke.py"
+test -s "${OUT}/pythonscad/smoke.stl"
+
 echo "All SCAD toolchain tests passed."

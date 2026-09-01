@@ -12,6 +12,18 @@ This repository tests a **published** SCAD toolchain image from a separate
 consumer repository. It therefore verifies what a real CAD repository will
 actually see: public commands, rendering behavior and export behavior.
 
+## v0.1.3 preparation
+
+This update makes the smoke tests symmetrical:
+
+```text
+OpenSCAD   : SCAD -> PNG + STL
+PythonSCAD : PY   -> PNG + STL
+```
+
+Both rendered PNGs are also shown in the versioned GitHub Pages report.
+
+
 ## Why this repository exists
 
 The responsibilities are deliberately separated:
@@ -139,6 +151,7 @@ The generated report records:
 - Python version;
 - PASS results for the smoke tests;
 - rendered OpenSCAD PNG;
+- rendered PythonSCAD PNG;
 - direct links to generated PNG/STL output.
 
 Raw output is still uploaded as an Actions artifact for debugging, but GitHub
@@ -169,6 +182,13 @@ SCAD -> STL
 and verifies that both files are produced.
 
 ### PythonSCAD
+
+The suite performs:
+
+```text
+PY -> PNG
+PY -> STL
+```
 
 PythonSCAD is tested through its own executable and embedded Python runtime:
 

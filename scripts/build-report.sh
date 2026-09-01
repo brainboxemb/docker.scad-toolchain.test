@@ -18,6 +18,7 @@ mkdir -p "${SITE}/openscad" "${SITE}/pythonscad"
 
 cp -f "${OUT}/openscad/smoke.png" "${SITE}/openscad/" 2>/dev/null || true
 cp -f "${OUT}/openscad/smoke.stl" "${SITE}/openscad/" 2>/dev/null || true
+cp -f "${OUT}/pythonscad/smoke.png" "${SITE}/pythonscad/" 2>/dev/null || true
 cp -f "${OUT}/pythonscad/smoke.stl" "${SITE}/pythonscad/" 2>/dev/null || true
 
 cat > "${SITE}/index.html" <<EOF
@@ -54,16 +55,21 @@ cat > "${SITE}/index.html" <<EOF
     <li class="pass">PASS — OpenSCAD STL export</li>
     <li class="pass">PASS — PythonSCAD CLI</li>
     <li class="pass">PASS — PythonSCAD model execution</li>
+    <li class="pass">PASS — PythonSCAD PNG render</li>
     <li class="pass">PASS — PythonSCAD STL export</li>
   </ul>
 
   <h2>OpenSCAD render</h2>
   <p><img src="openscad/smoke.png" alt="OpenSCAD smoke render"></p>
 
+  <h2>PythonSCAD render</h2>
+  <p><img src="pythonscad/smoke.png" alt="PythonSCAD smoke render"></p>
+
   <h2>Raw outputs</h2>
   <ul>
     <li><a href="openscad/smoke.png">OpenSCAD smoke PNG</a></li>
     <li><a href="openscad/smoke.stl">OpenSCAD smoke STL</a></li>
+    <li><a href="pythonscad/smoke.png">PythonSCAD smoke PNG</a></li>
     <li><a href="pythonscad/smoke.stl">PythonSCAD smoke STL</a></li>
   </ul>
 </body>
