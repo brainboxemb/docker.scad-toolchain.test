@@ -12,6 +12,7 @@ TOOLCHAIN_VERSION="${SCAD_TOOLCHAIN_VERSION:-unknown}"
 OPENSCAD_VERSION="$(openscad --version 2>&1 | head -n1)"
 PYTHONSCAD_VERSION="$(pythonscad --version 2>&1 | head -n1)"
 PYTHON_VERSION="$(python3 --version 2>&1 | head -n1)"
+GIT_VERSION="$(git --version 2>&1 | head -n1)"
 
 rm -rf "${SITE}"
 mkdir -p "${SITE}/openscad" "${SITE}/pythonscad"
@@ -46,10 +47,13 @@ cat > "${SITE}/index.html" <<EOF
     <tr><th>OpenSCAD</th><td>${OPENSCAD_VERSION}</td></tr>
     <tr><th>PythonSCAD</th><td>${PYTHONSCAD_VERSION}</td></tr>
     <tr><th>Python</th><td>${PYTHON_VERSION}</td></tr>
+    <tr><th>Git</th><td>${GIT_VERSION}</td></tr>
   </table>
 
   <h2>Results</h2>
   <ul>
+    <li class="pass">PASS — Git CLI</li>
+    <li class="pass">PASS — Git init/add/commit</li>
     <li class="pass">PASS — OpenSCAD CLI</li>
     <li class="pass">PASS — OpenSCAD PNG render</li>
     <li class="pass">PASS — OpenSCAD STL export</li>

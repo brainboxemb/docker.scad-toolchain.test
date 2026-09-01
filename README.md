@@ -25,7 +25,7 @@ test-v<test-suite-version>-toolchain-v<toolchain-version>
 Examples:
 
 ```text
-test-v0.1.0-toolchain-v0.1.1
+test-v0.1.1-toolchain-v0.1.2
 test-v0.1.1-toolchain-v0.1.1
 test-v0.2.0-toolchain-v0.2.0
 ```
@@ -38,7 +38,7 @@ The test-suite version and toolchain version are independent:
 The test-suite SemVer starts independently at `v0.1.0`. It does not inherit the current toolchain version.
 
 ```text
-test-v0.1.0-toolchain-v0.1.1
+test-v0.1.1-toolchain-v0.1.2
      ^^^^^^              ^^^^^^
      test suite          target toolchain
 ```
@@ -53,7 +53,7 @@ The tag name is also used as the permanent Pages directory.
 For example:
 
 ```text
-https://brainboxemb.github.io/docker.scad-toolchain.test/test-v0.1.0-toolchain-v0.1.1/
+https://brainboxemb.github.io/docker.scad-toolchain.test/test-v0.1.1-toolchain-v0.1.2/
 ```
 
 `/latest/` remains the development view from `main`.
@@ -118,7 +118,7 @@ and currently targets:
 
 ```text
 SCAD_TOOLCHAIN_IMAGE=ghcr.io/brainboxemb/scad-toolchain
-SCAD_TOOLCHAIN_VERSION=v0.1.1
+SCAD_TOOLCHAIN_VERSION=v0.1.2
 ```
 
 ## Test results dashboard
@@ -141,7 +141,7 @@ It contains:
 Example generated entries:
 
 ```text
-test-v0.1.0-toolchain-v0.1.1
+test-v0.1.1-toolchain-v0.1.2
 test-v0.1.1-toolchain-v0.1.1
 test-v0.2.0-toolchain-v0.2.0
 ```
@@ -167,7 +167,7 @@ the workflow:
 The resulting URL is:
 
 ```text
-https://brainboxemb.github.io/docker.scad-toolchain.test/test-v0.1.0-toolchain-v0.1.1/
+https://brainboxemb.github.io/docker.scad-toolchain.test/test-v0.1.1-toolchain-v0.1.2/
 ```
 
 That directory is kept when later versions are published.
@@ -268,6 +268,34 @@ python3 -c 'import pythonscad'
 because the PythonSCAD module belongs to the Python environment embedded in
 PythonSCAD, not necessarily the operating-system Python installation.
 
+## Git validation
+
+Git is part of the public CI interface of the SCAD toolchain because consuming
+CAD repositories may inspect and commit generated design or verification files.
+
+The test suite therefore checks both availability and basic functionality:
+
+```text
+git --version
+git init
+git config user.name / user.email
+git add
+git commit
+git rev-parse HEAD
+```
+
+The test identity is configured **locally inside the temporary smoke-test
+repository**:
+
+```text
+user.name  = SCAD Toolchain Test
+user.email = scad-toolchain-test@example.invalid
+```
+
+This is intentional. The test does not depend on global Git configuration or
+GitHub environment variables, and it leaves no persistent identity settings in
+the container.
+
 ## Repository layout
 
 ```text
@@ -329,14 +357,14 @@ ghcr.io/brainboxemb/scad-toolchain:v0.1.1
 Then create the immutable test-suite tag:
 
 ```bash
-git tag -a test-v0.1.0-toolchain-v0.1.1 -m "Test suite v0.1.2 against SCAD toolchain v0.1.1"
-git push origin test-v0.1.0-toolchain-v0.1.1
+git tag -a test-v0.1.1-toolchain-v0.1.2 -m "Test suite v0.1.2 against SCAD toolchain v0.1.1"
+git push origin test-v0.1.1-toolchain-v0.1.2
 ```
 
 That tag triggers the tests again and, if successful, publishes:
 
 ```text
-https://brainboxemb.github.io/docker.scad-toolchain.test/test-v0.1.0-toolchain-v0.1.1/
+https://brainboxemb.github.io/docker.scad-toolchain.test/test-v0.1.1-toolchain-v0.1.2/
 ```
 
 ## Improving tests without changing the toolchain
@@ -347,7 +375,7 @@ verification.
 Keep:
 
 ```text
-SCAD_TOOLCHAIN_VERSION=v0.1.1
+SCAD_TOOLCHAIN_VERSION=v0.1.2
 ```
 
 and release the test suite as, for example:
@@ -425,7 +453,7 @@ SCAD toolchain : v0.1.1
 This is the first released test-suite version, so release it as:
 
 ```text
-test-v0.1.0-toolchain-v0.1.1
+test-v0.1.1-toolchain-v0.1.2
 ```
 
 Commands:
@@ -435,10 +463,10 @@ git add .
 git commit -m "Add versioned Pages reports and PythonSCAD PNG test"
 git push
 
-git tag -a test-v0.1.0-toolchain-v0.1.1 \
+git tag -a test-v0.1.1-toolchain-v0.1.2 \
   -m "Test suite v0.1.2 against SCAD toolchain v0.1.1"
 
-git push origin test-v0.1.0-toolchain-v0.1.1
+git push origin test-v0.1.1-toolchain-v0.1.2
 ```
 
 After the tagged workflow passes, open the test results dashboard and verify that the new release appears there.
@@ -456,6 +484,18 @@ A future toolchain upgrade might become:
 test-v0.2.0-toolchain-v0.2.0
 ```
 
+
+## Current test-suite release
+
+The current test-suite change adds Git validation and targets SCAD toolchain
+`v0.1.2`.
+
+Because the previously released test-suite line started at `v0.1.0`, this
+change should be tagged as:
+
+```text
+test-v0.1.1-toolchain-v0.1.2
+```
 
 ## Historical traceability
 
@@ -480,8 +520,8 @@ Normally, released tags and their Pages results should remain available.
 If a tag was created by mistake:
 
 ```bash
-git tag -d test-v0.1.0-toolchain-v0.1.1
-git push origin :refs/tags/test-v0.1.0-toolchain-v0.1.1
+git tag -d test-v0.1.1-toolchain-v0.1.2
+git push origin :refs/tags/test-v0.1.1-toolchain-v0.1.2
 ```
 
 Deleting the Git tag does **not** automatically remove its directory from the

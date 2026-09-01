@@ -29,6 +29,23 @@ echo "== System Python =="
 python3 --version
 
 echo
+echo "== Git =="
+command -v git
+git --version
+
+GIT_TEST_DIR="$(mktemp -d)"
+git -C "$GIT_TEST_DIR" init -q
+git -C "$GIT_TEST_DIR" config user.name "SCAD Toolchain Test"
+git -C "$GIT_TEST_DIR" config user.email "scad-toolchain-test@example.invalid"
+
+printf 'SCAD toolchain Git smoke test\n' > "$GIT_TEST_DIR/test.txt"
+git -C "$GIT_TEST_DIR" add test.txt
+git -C "$GIT_TEST_DIR" commit -q -m "Git smoke test"
+git -C "$GIT_TEST_DIR" rev-parse --verify HEAD >/dev/null
+
+rm -rf "$GIT_TEST_DIR"
+
+echo
 echo "== OpenSCAD PNG =="
 xvfb-run -a openscad   --render   --imgsize=800,600   -o "${OUT}/openscad/smoke.png"   "${ROOT}/test/openscad/smoke.scad"
 test -s "${OUT}/openscad/smoke.png"
