@@ -8,16 +8,6 @@ This repository tests a **published** SCAD toolchain image from a separate
 consumer repository. It therefore verifies what a real CAD repository will
 actually see: public commands, rendering behavior and export behavior.
 
-## v0.1.3 preparation
-
-This update makes the smoke tests symmetrical:
-
-```text
-OpenSCAD   : SCAD -> PNG + STL
-PythonSCAD : PY   -> PNG + STL
-```
-
-Both rendered PNGs are also shown in the versioned GitHub Pages report.
 
 
 
