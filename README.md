@@ -41,9 +41,9 @@ This makes historical validation reproducible.
 This repository is prepared for:
 
 ```text
-test suite       : v0.1.0
-target toolchain : v0.1.0
-image            : ghcr.io/brainboxemb/scad-toolchain:v0.1.0
+test suite       : v0.1.1
+target toolchain : v0.1.1
+image            : ghcr.io/brainboxemb/scad-toolchain:v0.1.1
 ```
 
 The target is stored in:
@@ -63,7 +63,8 @@ The first suite performs consumer-style smoke tests.
 - `scad-toolchain-info`
 - `openscad --version`
 - Python availability
-- PythonSCAD import / version probe
+- PythonSCAD CLI/version
+- PythonSCAD embedded-Python model execution
 
 ### OpenSCAD
 
@@ -79,6 +80,19 @@ The first suite performs consumer-style smoke tests.
 
 The PythonSCAD command may evolve with the toolchain. That is exactly why this
 test repository has its own version history.
+
+
+### PythonSCAD execution model
+
+PythonSCAD Python designs are tested through the PythonSCAD executable:
+
+```bash
+pythonscad -o output.stl --trust-python model.py
+```
+
+The `pythonscad` module is provided to Python code executed by PythonSCAD's
+embedded Python environment. The suite therefore does **not** require
+`python3 -c 'import pythonscad'` to work in the operating system Python.
 
 ## Repository layout
 

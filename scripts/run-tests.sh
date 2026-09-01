@@ -8,52 +8,39 @@ rm -rf "${OUT}"
 mkdir -p "${OUT}/openscad" "${OUT}/pythonscad"
 
 echo "== Toolchain information =="
-if command -v scad-toolchain-info >/dev/null 2>&1; then
-  scad-toolchain-info
-fi
+scad-toolchain-info
+
+echo
+echo "== Public commands =="
+command -v openscad
+command -v pythonscad
+command -v python3
 
 echo
 echo "== OpenSCAD version =="
 openscad --version
 
 echo
-echo "== Python =="
-python3 --version
+echo "== PythonSCAD version =="
+pythonscad --version
 
 echo
-echo "== PythonSCAD import =="
-python3 - <<'PY'
-import pythonscad
-print("PythonSCAD import: OK")
-print("module:", pythonscad.__file__)
-PY
+echo "== System Python =="
+python3 --version
 
 echo
 echo "== OpenSCAD PNG =="
 xvfb-run -a openscad   --render   --imgsize=800,600   -o "${OUT}/openscad/smoke.png"   "${ROOT}/test/openscad/smoke.scad"
-
 test -s "${OUT}/openscad/smoke.png"
 
 echo
 echo "== OpenSCAD STL =="
 openscad   -o "${OUT}/openscad/smoke.stl"   "${ROOT}/test/openscad/smoke.scad"
-
 test -s "${OUT}/openscad/smoke.stl"
 
 echo
-echo "== PythonSCAD model =="
-# PythonSCAD currently executes Python design files through its supplied
-# command/runtime. Keep the command in this external suite so it can evolve
-# independently from older toolchain versions.
-if command -v pythonscad >/dev/null 2>&1; then
-  xvfb-run -a pythonscad     -o "${OUT}/pythonscad/smoke.stl"     "${ROOT}/test/pythonscad/smoke.py"
-elif command -v openscad-python >/dev/null 2>&1; then
-  xvfb-run -a openscad-python     -o "${OUT}/pythonscad/smoke.stl"     "${ROOT}/test/pythonscad/smoke.py"
-else
-  echo "ERROR: No PythonSCAD CLI command found in the toolchain." >&2
-  exit 1
-fi
-
+echo "== PythonSCAD STL =="
+xvfb-run -a pythonscad   -o "${OUT}/pythonscad/smoke.stl"   --trust-python   "${ROOT}/test/pythonscad/smoke.py"
 test -s "${OUT}/pythonscad/smoke.stl"
 
 echo
