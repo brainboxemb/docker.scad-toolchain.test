@@ -5,7 +5,7 @@ on:
     branches:
       - main
     tags:
-      - 'v*'
+      - 'test-v*-toolchain-v*'
   pull_request:
   workflow_dispatch:
     inputs:
@@ -94,29 +94,64 @@ jobs:
           path: site/
           if-no-files-found: error
 
-  publish:
-    needs: [resolve, test]
-    if: success() && github.event_name != 'pull_request'
-    runs-on: ubuntu-24.04
-    concurrency:
-      group: pages-publish
-      cancel-in-progress: false
+publish:
+  needs: [resolve, test]
+  if: success() && github.event_name != 'pull_request'
+  runs-on: ubuntu-24.04
+  concurrency:
+    group: pages-publish
+    cancel-in-progress: false
 
-    steps:
-      - uses: actions/checkout@v4
+  steps:
+    - name: Checkout source branch
+      uses: actions/checkout@v4
+      with:
+        path: source
 
-      - name: Download report
-        uses: actions/download-artifact@v4
-        with:
-          name: scad-toolchain-test-site
-          path: site/
+    - name: Download report
+      uses: actions/download-artifact@v4
+      with:
+        name: scad-toolchain-test-site
+        path: report
 
-      - name: Publish versioned report
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./site
-          destination_dir: ${{ needs.resolve.outputs.suite_version }}
-          keep_files: true
-          user_name: github-actions[bot]
-          user_email: 41898282+github-actions[bot]@users.noreply.github.com
+    - name: Checkout gh-pages branch
+      uses: actions/checkout@v4
+      with:
+        ref: gh-pages
+        path: pages
+      continue-on-error: true
+
+    - name: Initialize Pages tree if needed
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [[ ! -d pages/.git ]]; then
+          rm -rf pages
+          mkdir pages
+        fi
+
+    - name: Update report directory
+      shell: bash
+      run: |
+        set -euo pipefail
+        DEST="pages/${{ needs.resolve.outputs.suite_version }}"
+        rm -rf "${DEST}"
+        mkdir -p "${DEST}"
+        cp -a report/. "${DEST}/"
+
+    - name: Build root index
+      shell: bash
+      run: |
+        set -euo pipefail
+        bash source/scripts/build-index.sh pages
+
+    - name: Publish Pages branch
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./pages
+        publish_branch: gh-pages
+        keep_files: true
+        force_orphan: false
+        user_name: github-actions[bot]
+        user_email: 41898282+github-actions[bot]@users.noreply.github.com

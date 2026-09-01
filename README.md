@@ -1,10 +1,6 @@
 # docker.scad-toolchain.test
 
-> **Test results**
->
-> - Latest successful test: https://brainboxemb.github.io/docker.scad-toolchain.test/latest/
-> - Versioned results: `https://brainboxemb.github.io/docker.scad-toolchain.test/<test-suite-tag>/`
-> - Example: https://brainboxemb.github.io/docker.scad-toolchain.test/v0.1.1/
+> **Test results:** https://brainboxemb.github.io/docker.scad-toolchain.test/
 
 Versioned external validation suite for `ghcr.io/brainboxemb/scad-toolchain`.
 
@@ -22,6 +18,53 @@ PythonSCAD : PY   -> PNG + STL
 ```
 
 Both rendered PNGs are also shown in the versioned GitHub Pages report.
+
+
+
+## Release tag convention
+
+Released test-suite tags encode **both** the test-suite version and the exact
+toolchain version being validated.
+
+Use this format:
+
+```text
+test-v<test-suite-version>-toolchain-v<toolchain-version>
+```
+
+Examples:
+
+```text
+test-v0.1.1-toolchain-v0.1.1
+test-v0.1.2-toolchain-v0.1.1
+test-v0.2.0-toolchain-v0.2.0
+```
+
+This makes the validation relationship visible directly in Git history,
+GitHub Actions and the versioned Pages URL.
+
+The test-suite version and toolchain version are independent:
+
+```text
+test-v0.1.2-toolchain-v0.1.1
+     ^^^^^^              ^^^^^^
+     test suite          target toolchain
+```
+
+A newer test-suite release may continue to validate the same toolchain, and a
+newer test suite does not need to remain compatible with older toolchains.
+
+### Pages URL
+
+The tag name is also used as the permanent Pages directory.
+
+For example:
+
+```text
+https://brainboxemb.github.io/docker.scad-toolchain.test/test-v0.1.2-toolchain-v0.1.1/
+```
+
+`/latest/` remains the development view from `main`.
 
 
 ## Why this repository exists
@@ -86,6 +129,34 @@ SCAD_TOOLCHAIN_IMAGE=ghcr.io/brainboxemb/scad-toolchain
 SCAD_TOOLCHAIN_VERSION=v0.1.1
 ```
 
+## Test results dashboard
+
+The single public entry point for test results is:
+
+```text
+https://brainboxemb.github.io/docker.scad-toolchain.test/
+```
+
+The root page is generated automatically after every successful publish.
+
+It contains:
+
+- a link to `/latest/` for the latest successful run from `main`;
+- all released test-suite reports;
+- the test-suite version;
+- the toolchain version encoded in each release tag.
+
+Example generated entries:
+
+```text
+test-v0.1.2-toolchain-v0.1.1
+test-v0.1.3-toolchain-v0.1.1
+test-v0.2.0-toolchain-v0.2.0
+```
+
+You normally do not need to remember or copy a version-specific Pages URL:
+open the dashboard and select the required historical test result.
+
 ## Permanent results per test-suite tag
 
 When a tag is pushed, for example:
@@ -104,7 +175,7 @@ the workflow:
 The resulting URL is:
 
 ```text
-https://brainboxemb.github.io/docker.scad-toolchain.test/v0.1.1/
+https://brainboxemb.github.io/docker.scad-toolchain.test/test-v0.1.2-toolchain-v0.1.1/
 ```
 
 That directory is kept when later versions are published.
@@ -266,14 +337,14 @@ ghcr.io/brainboxemb/scad-toolchain:v0.1.1
 Then create the immutable test-suite tag:
 
 ```bash
-git tag -a v0.1.1 -m "SCAD toolchain test suite v0.1.1"
-git push origin v0.1.1
+git tag -a test-v0.1.2-toolchain-v0.1.1 -m "Test suite v0.1.2 against SCAD toolchain v0.1.1"
+git push origin test-v0.1.2-toolchain-v0.1.1
 ```
 
 That tag triggers the tests again and, if successful, publishes:
 
 ```text
-https://brainboxemb.github.io/docker.scad-toolchain.test/v0.1.1/
+https://brainboxemb.github.io/docker.scad-toolchain.test/test-v0.1.2-toolchain-v0.1.1/
 ```
 
 ## Improving tests without changing the toolchain
@@ -350,6 +421,51 @@ report     /v0.2.0/
 
 The `v0.2.x` suite does not need to support toolchain `v0.1.x`.
 
+
+## Current release instruction
+
+The current suite targets:
+
+```text
+SCAD toolchain : v0.1.1
+```
+
+The current test-suite state includes the Pages report and symmetric
+OpenSCAD/PythonSCAD PNG + STL checks. Release it as:
+
+```text
+test-v0.1.2-toolchain-v0.1.1
+```
+
+Commands:
+
+```bash
+git add .
+git commit -m "Add versioned Pages reports and PythonSCAD PNG test"
+git push
+
+git tag -a test-v0.1.2-toolchain-v0.1.1 \
+  -m "Test suite v0.1.2 against SCAD toolchain v0.1.1"
+
+git push origin test-v0.1.2-toolchain-v0.1.1
+```
+
+After the tagged workflow passes, open the test results dashboard and verify that the new release appears there.
+
+Do not move or overwrite this tag later. A future test-only change becomes,
+for example:
+
+```text
+test-v0.1.3-toolchain-v0.1.1
+```
+
+A future toolchain upgrade might become:
+
+```text
+test-v0.2.0-toolchain-v0.2.0
+```
+
+
 ## Historical traceability
 
 A consuming CAD repository can eventually document:
@@ -357,7 +473,7 @@ A consuming CAD repository can eventually document:
 ```text
 SCAD toolchain : v0.1.1
 validated by   : docker.scad-toolchain.test v0.1.1
-results        : https://brainboxemb.github.io/docker.scad-toolchain.test/v0.1.1/
+results        : https://brainboxemb.github.io/docker.scad-toolchain.test/
 ```
 
 That provides three immutable references:
@@ -373,8 +489,8 @@ Normally, released tags and their Pages results should remain available.
 If a tag was created by mistake:
 
 ```bash
-git tag -d v0.1.1
-git push origin :refs/tags/v0.1.1
+git tag -d test-v0.1.2-toolchain-v0.1.1
+git push origin :refs/tags/test-v0.1.2-toolchain-v0.1.1
 ```
 
 Deleting the Git tag does **not** automatically remove its directory from the
