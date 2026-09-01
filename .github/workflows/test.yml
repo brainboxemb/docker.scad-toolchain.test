@@ -1,0 +1,76 @@
+name: Test published SCAD toolchain
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      toolchain_version:
+        description: 'Optional toolchain version override, e.g. v0.2.0'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  resolve:
+    runs-on: ubuntu-24.04
+    outputs:
+      image: ${{ steps.config.outputs.image }}
+      version: ${{ steps.config.outputs.version }}
+      container: ${{ steps.config.outputs.container }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: config
+        shell: bash
+        env:
+          OVERRIDE_VERSION: ${{ inputs.toolchain_version }}
+        run: |
+          set -euo pipefail
+          source ./toolchain.env
+
+          VERSION="${SCAD_TOOLCHAIN_VERSION}"
+          if [[ -n "${OVERRIDE_VERSION:-}" ]]; then
+            VERSION="${OVERRIDE_VERSION}"
+          fi
+
+          echo "image=${SCAD_TOOLCHAIN_IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "container=${SCAD_TOOLCHAIN_IMAGE}:${VERSION}" >> "$GITHUB_OUTPUT"
+
+          echo "Test suite ref : ${GITHUB_REF}"
+          echo "Toolchain      : ${SCAD_TOOLCHAIN_IMAGE}:${VERSION}"
+
+  test:
+    needs: resolve
+    runs-on: ubuntu-24.04
+    container:
+      image: ${{ needs.resolve.outputs.container }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show target
+        run: |
+          echo "Toolchain image: ${{ needs.resolve.outputs.container }}"
+
+      - name: Run external consumer tests
+        run: bash ./scripts/run-tests.sh
+
+      - name: Upload test output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scad-toolchain-test-output
+          path: out/
+          if-no-files-found: warn
