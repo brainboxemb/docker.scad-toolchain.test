@@ -543,18 +543,51 @@ from the `gh-pages` branch separately.
 - Use `/latest/` only for current development.
 - Use `/vX.Y.Z/` for historical verification.
 
-## PythonSCAD command-line define test
+## PythonSCAD command-line defines
 
-The suite contains an isolated test for PythonSCAD `-D name=value` behavior.
+The test suite verifies how PythonSCAD exposes OpenSCAD-style command-line
+defines to Python code.
 
-It checks whether a command such as:
+For example:
 
 ```bash
--D 'design_view="01-ring"'
+pythonscad --trust-python \
+  -D 'design_view="01-ring"' \
+  test/pythonscad/define-probe.py
 ```
 
-makes `design_view` available in the Python script before the script assigns a
-default. The probe also calls `add_parameter()` under a different name so both
-mechanisms can be observed independently.
+makes `design_view` available as a Python global before the script executes.
 
-The test runs three explicit values and one case without `-D`.
+The probe reads it with:
+
+```python
+injected_design_view = globals().get("design_view", "<missing>")
+```
+
+Verified behavior:
+
+| CLI input | Python value |
+| --- | --- |
+| `-D 'design_view="01-ring"'` | `01-ring` |
+| `-D 'design_view="02-opening"'` | `02-opening` |
+| `-D 'design_view="final"'` | `final` |
+| no `-D` | variable is absent |
+
+The test also confirms that a separate `add_parameter()` call keeps its own
+default value and does not automatically consume the `-D design_view=...`
+define.
+
+This means consumer PythonSCAD projects can use the same external `-D
+name=value` pattern as OpenSCAD and provide their own Python-side fallback when
+the variable is absent.
+
+## Test-suite release tag
+
+This change extends the test suite while still validating SCAD toolchain
+`v0.1.2`.
+
+The corresponding immutable test tag is:
+
+```text
+test-v0.1.2-toolchain-v0.1.2
+```
