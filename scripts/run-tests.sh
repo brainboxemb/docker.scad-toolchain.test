@@ -46,6 +46,10 @@ git -C "$GIT_TEST_DIR" rev-parse --verify HEAD >/dev/null
 rm -rf "$GIT_TEST_DIR"
 
 echo
+echo
+echo "== PythonSCAD command-line defines =="
+bash "$ROOT_DIR/scripts/test-pythonscad-defines.sh"
+
 echo "== OpenSCAD PNG =="
 xvfb-run -a openscad   --render   --imgsize=800,600   -o "${OUT}/openscad/smoke.png"   "${ROOT}/test/openscad/smoke.scad"
 test -s "${OUT}/openscad/smoke.png"

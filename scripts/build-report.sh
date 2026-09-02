@@ -52,6 +52,7 @@ cat > "${SITE}/index.html" <<EOF
 
   <h2>Results</h2>
   <ul>
+    <li class="pass">PASS — PythonSCAD -D define injection</li>
     <li class="pass">PASS — Git CLI</li>
     <li class="pass">PASS — Git init/add/commit</li>
     <li class="pass">PASS — OpenSCAD CLI</li>

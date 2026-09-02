@@ -542,3 +542,19 @@ from the `gh-pages` branch separately.
 - Newer test suites are free to drop compatibility with older toolchains.
 - Use `/latest/` only for current development.
 - Use `/vX.Y.Z/` for historical verification.
+
+## PythonSCAD command-line define test
+
+The suite contains an isolated test for PythonSCAD `-D name=value` behavior.
+
+It checks whether a command such as:
+
+```bash
+-D 'design_view="01-ring"'
+```
+
+makes `design_view` available in the Python script before the script assigns a
+default. The probe also calls `add_parameter()` under a different name so both
+mechanisms can be observed independently.
+
+The test runs three explicit values and one case without `-D`.
