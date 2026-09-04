@@ -276,3 +276,47 @@ Do not load `shapes3d.scad` directly just because the test uses `cuboid()`.
 `shapes3d.scad` expects the standard constants and dependencies established by
 `std.scad`; direct loading causes missing-symbol warnings such as `CENTER`,
 `UP`, and `EDGES_ALL`.
+
+
+## PythonSCAD interoperability findings
+
+The suite deliberately records both supported routes and known compatibility
+limits.
+
+| Capability | Status | Finding |
+| --- | --- | --- |
+| OpenSCAD -> BOSL2 | PASS expected | Native BOSL2/OpenSCAD path |
+| PythonSCAD -> pybosl2 | PASS expected | Python-native BOSL2 path |
+| PythonSCAD -> BOSL2 `.scad` via `osuse()` | **XFAIL** | BOSL2 uses OpenSCAD's date-based `version_num()` compatibility gate; PythonSCAD exposes its own semantic-version runtime value |
+| OpenSCAD experimental `object()` across the PythonSCAD boundary | Known limitation | Object-based OpenSCAD APIs do not currently cross into PythonSCAD as usable Python-side objects |
+
+These are two independent signs of the same broader architectural limitation:
+PythonSCAD can consume conventional OpenSCAD modules/functions in useful cases,
+but compatibility is incomplete for modern OpenSCAD library architectures and
+libraries that rely strongly on OpenSCAD-specific runtime behavior.
+
+The BOSL2 XFAIL also shows that PythonSCAD is not simply "OpenSCAD with Python
+around it". Although PythonSCAD contains substantial OpenSCAD-derived
+infrastructure, its interoperability/runtime layer can expose different
+semantics to imported `.scad` code.
+
+For this project the current direction is therefore:
+
+```text
+Reusable CAD libraries
+    -> OpenSCAD is the primary implementation target
+
+BOSL2
+    -> OpenSCAD uses native BOSL2
+    -> PythonSCAD uses pybosl2 for comparison/experimentation
+
+PythonSCAD
+    -> remains useful as an alternative/experimental CAD environment
+    -> is not currently the foundation for our object-based reusable SCAD APIs
+```
+
+The direct `PythonSCAD -> BOSL2 .scad` test is intentionally retained as an
+XFAIL compatibility probe. The suite only accepts the documented BOSL2 version
+check failure. Unexpected success or any different failure causes the test to
+fail so that this conclusion must be reviewed instead of silently becoming
+outdated.

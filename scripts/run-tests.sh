@@ -42,6 +42,41 @@ run_checked() {
   rm -f "$log"
 }
 
+run_expected_failure() {
+  local label="$1"
+  local expected_pattern="$2"
+  shift 2
+
+  local log
+  log="$(mktemp)"
+
+  echo
+  echo "== ${label} =="
+
+  set +e
+  "$@" 2>&1 | tee "$log"
+  local status=${PIPESTATUS[0]}
+  set -e
+
+  if (( status == 0 )); then
+    echo "ERROR: ${label} unexpectedly succeeded; review the documented XFAIL." >&2
+    rm -f "$log"
+    return 1
+  fi
+
+  if grep -Fq "$expected_pattern" "$log"; then
+    echo "XFAIL: ${label}"
+    echo "Reason: known PythonSCAD/OpenSCAD runtime compatibility mismatch."
+    rm -f "$log"
+    return 0
+  fi
+
+  echo "ERROR: ${label} failed for an unexpected reason." >&2
+  echo "Expected log pattern: $expected_pattern" >&2
+  rm -f "$log"
+  return 1
+}
+
 echo "== Toolchain information =="
 scad-toolchain-info
 
@@ -135,21 +170,22 @@ run_checked "OpenSCAD -> BOSL2 STL" \
     "${ROOT}/test/openscad/bosl2.scad"
 test -s "${OUT}/bosl2-openscad/model.stl"
 
-run_checked "PythonSCAD -> BOSL2 SCAD PNG" \
+# Known incompatibility probe.
+#
+# BOSL2/std.scad uses OpenSCAD's date-based version_num() as a compatibility
+# gate. PythonSCAD reports its own semantic-version value through the SCAD
+# compatibility runtime, so BOSL2 currently rejects the runtime.
+#
+# This remains an active test. Only the documented failure is accepted.
+# Unexpected success or a different failure makes the suite fail so that the
+# interoperability assessment cannot silently become stale.
+run_expected_failure \
+  "PythonSCAD -> BOSL2 SCAD (expected incompatibility)" \
+  "BOSL2 requires OpenSCAD version 2021.01 or later." \
   xvfb-run -a pythonscad \
-    --render \
-    --imgsize=800,600 \
-    -o "${OUT}/bosl2-pythonscad-scad/model.png" \
+    -o "${OUT}/bosl2-pythonscad-scad/xfail.stl" \
     --trust-python \
     "${ROOT}/test/pythonscad/bosl2_scad.py"
-test -s "${OUT}/bosl2-pythonscad-scad/model.png"
-
-run_checked "PythonSCAD -> BOSL2 SCAD STL" \
-  xvfb-run -a pythonscad \
-    -o "${OUT}/bosl2-pythonscad-scad/model.stl" \
-    --trust-python \
-    "${ROOT}/test/pythonscad/bosl2_scad.py"
-test -s "${OUT}/bosl2-pythonscad-scad/model.stl"
 
 run_checked "PythonSCAD -> pybosl2 PNG" \
   xvfb-run -a pythonscad \
@@ -168,4 +204,4 @@ run_checked "PythonSCAD -> pybosl2 STL" \
 test -s "${OUT}/bosl2-pythonscad-py/model.stl"
 
 echo
-echo "All SCAD toolchain consumer tests passed."
+echo "All supported SCAD toolchain consumer tests passed; documented XFAILs matched expectations."

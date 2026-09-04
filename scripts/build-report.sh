@@ -43,6 +43,7 @@ cat > "${SITE}/index.html" <<EOF
     th, td { text-align: left; border-bottom: 1px solid #ddd; padding: .5rem; }
     img { max-width: 100%; height: auto; border: 1px solid #ddd; }
     .pass { font-weight: 700; }
+    .xfail { font-weight: 700; }
     .comparison { display: grid; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); gap: 1rem; }
   </style>
 </head>
@@ -67,15 +68,15 @@ cat > "${SITE}/index.html" <<EOF
     <li class="pass">PASS — OpenSCAD PNG/STL</li>
     <li class="pass">PASS — PythonSCAD PNG/STL</li>
     <li class="pass">PASS — OpenSCAD → BOSL2 PNG/STL</li>
-    <li class="pass">PASS — PythonSCAD → BOSL2 .scad PNG/STL</li>
+    <li class="xfail">XFAIL — PythonSCAD → BOSL2 .scad via osuse()</li>
     <li class="pass">PASS — PythonSCAD → pybosl2 PNG/STL</li>
   </ul>
 
   <h2>BOSL2 comparison</h2>
   <p>
-    The three renders below intentionally use the same small rounded cuboid.
-    This is a technical interoperability comparison, not a claim that the two
-    BOSL2 implementations have complete feature parity.
+    The supported OpenSCAD/BOSL2 and PythonSCAD/pybosl2 routes intentionally
+    use the same small rounded cuboid. The direct PythonSCAD → BOSL2 .scad
+    route remains in the test suite as a documented expected incompatibility.
   </p>
 
   <div class="comparison">
@@ -84,14 +85,22 @@ cat > "${SITE}/index.html" <<EOF
       <img src="bosl2-openscad/model.png" alt="OpenSCAD BOSL2 render">
     </div>
     <div>
-      <h3>PythonSCAD → BOSL2 .scad</h3>
-      <img src="bosl2-pythonscad-scad/model.png" alt="PythonSCAD BOSL2 SCAD render">
-    </div>
-    <div>
       <h3>PythonSCAD → pybosl2</h3>
       <img src="bosl2-pythonscad-py/model.png" alt="PythonSCAD pybosl2 render">
     </div>
   </div>
+
+  <h3>Known incompatibility: PythonSCAD → BOSL2 .scad</h3>
+  <p>
+    This route is executed as an XFAIL. BOSL2 <code>std.scad</code> relies on
+    OpenSCAD's date-based <code>version_num()</code> compatibility check.
+    PythonSCAD exposes its own semantic-version value through the SCAD runtime,
+    so BOSL2 rejects the runtime before the test geometry is created.
+  </p>
+  <p>
+    The suite accepts only that documented failure. Unexpected success or a
+    different failure causes the verification job to fail and requires review.
+  </p>
 
   <h2>Base smoke renders</h2>
   <h3>OpenSCAD</h3>
@@ -100,10 +109,16 @@ cat > "${SITE}/index.html" <<EOF
   <h3>PythonSCAD</h3>
   <img src="pythonscad/smoke.png" alt="PythonSCAD smoke render">
 
+  <h2>PythonSCAD interoperability conclusion</h2>
+  <ul>
+    <li>OpenSCAD experimental <code>object()</code> values do not currently cross the PythonSCAD boundary as usable object APIs.</li>
+    <li>Advanced OpenSCAD libraries can depend on OpenSCAD runtime semantics that PythonSCAD does not reproduce identically.</li>
+    <li>For BOSL2, the preferred PythonSCAD route is <code>pybosl2</code>; native BOSL2 remains the OpenSCAD route.</li>
+  </ul>
+
   <h2>Raw outputs</h2>
   <ul>
     <li><a href="bosl2-openscad/model.stl">OpenSCAD → BOSL2 STL</a></li>
-    <li><a href="bosl2-pythonscad-scad/model.stl">PythonSCAD → BOSL2 .scad STL</a></li>
     <li><a href="bosl2-pythonscad-py/model.stl">PythonSCAD → pybosl2 STL</a></li>
     <li><a href="openscad/smoke.stl">OpenSCAD smoke STL</a></li>
     <li><a href="pythonscad/smoke.stl">PythonSCAD smoke STL</a></li>

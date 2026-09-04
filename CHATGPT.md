@@ -213,3 +213,48 @@ bosl2 = osuse(str(bosl2_file))
 
 Do not directly `osuse()` `shapes3d.scad`. BOSL2 component files rely on the
 standard constants/dependencies loaded by `std.scad`.
+
+
+## Current PythonSCAD interoperability conclusion
+
+Two independent compatibility limitations have now been demonstrated.
+
+### 1. OpenSCAD `object()` boundary
+
+Modern OpenSCAD experimental `object()` values do not currently cross the
+OpenSCAD/PythonSCAD boundary as usable Python-side objects. Do not flatten or
+redesign public OpenSCAD object APIs merely to make them consumable by
+PythonSCAD.
+
+### 2. BOSL2 OpenSCAD-runtime boundary
+
+`PythonSCAD -> BOSL2 .scad` through `osuse()` is a maintained XFAIL.
+
+BOSL2 `std.scad` uses OpenSCAD's date-based `version_num()` compatibility check.
+PythonSCAD's SCAD runtime exposes PythonSCAD's own semantic-version value, so
+BOSL2 rejects the runtime.
+
+This is important beyond the individual assertion: BOSL2 relies strongly on
+OpenSCAD-specific runtime semantics, while PythonSCAD's interoperability layer
+does not reproduce all of those semantics identically despite being built on
+substantial OpenSCAD-derived infrastructure.
+
+Maintain these routes as:
+
+```text
+OpenSCAD   -> BOSL2       : supported/native
+PythonSCAD -> pybosl2     : supported comparison route
+PythonSCAD -> BOSL2 SCAD  : XFAIL compatibility probe
+```
+
+Do not hide these findings with compatibility shims that fake OpenSCAD version
+numbers or flatten object APIs.
+
+The XFAIL is valid only when the expected message is observed:
+
+```text
+BOSL2 requires OpenSCAD version 2021.01 or later.
+```
+
+If that route unexpectedly succeeds, or fails for another reason, the suite
+must fail and the compatibility conclusion must be reviewed.
