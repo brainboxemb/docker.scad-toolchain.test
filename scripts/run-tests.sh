@@ -170,6 +170,18 @@ run_checked "OpenSCAD -> BOSL2 STL" \
     "${ROOT}/test/openscad/bosl2.scad"
 test -s "${OUT}/bosl2-openscad/model.stl"
 
+
+# Known incompatibility probe: OpenSCAD experimental object() values do not
+# currently cross into PythonSCAD as usable objects.
+run_expected_failure \
+  "PythonSCAD -> OpenSCAD object() (expected incompatibility)" \
+  "PYTHONSCAD_OPENSCAD_OBJECT_XFAIL" \
+  xvfb-run -a pythonscad \
+    --enable=object-function \
+    -o "${OUT}/pythonscad-openscad-object/xfail.stl" \
+    --trust-python \
+    "${ROOT}/test/pythonscad/openscad_object/object_bridge_probe.py"
+
 # Known incompatibility probe.
 #
 # BOSL2/std.scad uses OpenSCAD's date-based version_num() as a compatibility

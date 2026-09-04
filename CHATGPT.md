@@ -258,3 +258,36 @@ BOSL2 requires OpenSCAD version 2021.01 or later.
 
 If that route unexpectedly succeeds, or fails for another reason, the suite
 must fail and the compatibility conclusion must be reviewed.
+
+
+### Active OpenSCAD object XFAIL
+
+The OpenSCAD `object()` limitation is an active verification probe, not just a
+documented historical finding.
+
+Files:
+
+```text
+test/pythonscad/openscad_object/object_api.scad
+test/pythonscad/openscad_object/object_bridge_probe.py
+```
+
+Expected marker:
+
+```text
+PYTHONSCAD_OPENSCAD_OBJECT_XFAIL
+```
+
+Do not add scalar bridge wrappers or fake object representations to make the
+probe pass. Unexpected success means PythonSCAD interoperability has improved
+and the test/report status must be updated.
+
+The report order is intentionally:
+
+```text
+1. PASS/XFAIL summary
+2. interoperability findings
+3. supported geometry renders
+4. smoke renders
+5. environment / raw outputs
+```
