@@ -2,11 +2,12 @@
 set -euo pipefail
 
 ROOT_DIR="${1:-.}"
-
 cd "${ROOT_DIR}"
 
 mapfile -t versions < <(
-  find . -mindepth 1 -maxdepth 1 -type d -printf '%f\n'     | grep -E '^test-v.*-toolchain-v.*$'     | sort -V -r
+  find . -mindepth 1 -maxdepth 1 -type d -printf '%f\n' \
+    | grep -E '^test-v.*-toolchain-v.*$' \
+    | sort -V -r
 )
 
 cat > index.html <<'EOF'
@@ -47,7 +48,6 @@ else
     label="${version#test-v}"
     test_version="${label%%-toolchain-v*}"
     toolchain_version="${label##*-toolchain-v}"
-
     cat >> index.html <<EOF
     <li>
       <a href="${version}/">${version}</a>

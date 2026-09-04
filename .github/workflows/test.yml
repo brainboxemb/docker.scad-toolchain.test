@@ -26,6 +26,7 @@ jobs:
       version: ${{ steps.config.outputs.version }}
       container: ${{ steps.config.outputs.container }}
       suite_version: ${{ steps.config.outputs.suite_version }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -53,8 +54,8 @@ jobs:
           echo "container=${SCAD_TOOLCHAIN_IMAGE}:${VERSION}" >> "$GITHUB_OUTPUT"
           echo "suite_version=${SUITE_VERSION}" >> "$GITHUB_OUTPUT"
 
-          echo "Test suite     : ${SUITE_VERSION}"
-          echo "Toolchain      : ${SCAD_TOOLCHAIN_IMAGE}:${VERSION}"
+          echo "Test suite : ${SUITE_VERSION}"
+          echo "Toolchain  : ${SCAD_TOOLCHAIN_IMAGE}:${VERSION}"
 
   test:
     needs: resolve
@@ -101,26 +102,26 @@ jobs:
     concurrency:
       group: pages-publish
       cancel-in-progress: false
-  
+
     steps:
       - name: Checkout source branch
         uses: actions/checkout@v4
         with:
           path: source
-  
+
       - name: Download report
         uses: actions/download-artifact@v4
         with:
           name: scad-toolchain-test-site
           path: report
-  
+
       - name: Checkout gh-pages branch
         uses: actions/checkout@v4
         with:
           ref: gh-pages
           path: pages
         continue-on-error: true
-  
+
       - name: Initialize Pages tree if needed
         shell: bash
         run: |
@@ -129,7 +130,7 @@ jobs:
             rm -rf pages
             mkdir pages
           fi
-  
+
       - name: Update report directory
         shell: bash
         run: |
@@ -138,13 +139,13 @@ jobs:
           rm -rf "${DEST}"
           mkdir -p "${DEST}"
           cp -a report/. "${DEST}/"
-  
+
       - name: Build root index
         shell: bash
         run: |
           set -euo pipefail
           bash source/scripts/build-index.sh pages
-  
+
       - name: Publish Pages branch
         uses: peaceiris/actions-gh-pages@v4
         with:
