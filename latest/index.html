@@ -8,43 +8,65 @@
     body { font-family: system-ui, sans-serif; max-width: 980px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
     code { background: #f3f3f3; padding: .1rem .3rem; border-radius: .25rem; }
     table { border-collapse: collapse; width: 100%; margin: 1rem 0 2rem; }
-    th, td { text-align: left; border-bottom: 1px solid #ddd; padding: .5rem; }
+    th, td { text-align: left; border-bottom: 1px solid #ddd; padding: .5rem; vertical-align: top; }
     img { max-width: 100%; height: auto; border: 1px solid #ddd; }
     .pass { font-weight: 700; }
     .xfail { font-weight: 700; }
-    .comparison { display: grid; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); gap: 1rem; }
+    .comparison { display: grid; grid-template-columns: repeat(auto-fit,minmax(300px,1fr)); gap: 1rem; }
+    .status-table td:first-child { white-space: nowrap; font-weight: 700; }
   </style>
 </head>
 <body>
   <h1>SCAD toolchain verification</h1>
 
-  <table>
-    <tr><th>Test suite</th><td><code>latest</code></td></tr>
-    <tr><th>Toolchain image</th><td><code>ghcr.io/brainboxemb/scad-toolchain:edge</code></td></tr>
-    <tr><th>OpenSCAD</th><td>OpenSCAD version 2026.09.03.nightly</td></tr>
-    <tr><th>PythonSCAD</th><td>PythonSCAD version 1.1.2</td></tr>
-    <tr><th>Python</th><td>Python 3.12.3</td></tr>
-    <tr><th>Git</th><td>git version 2.43.0</td></tr>
-    <tr><th>BOSL2</th><td>v2.0.752</td></tr>
-    <tr><th>pybosl2</th><td>0.6.7</td></tr>
+  <h2>Test summary</h2>
+  <table class="status-table">
+    <tr><th>Status</th><th>Route / test</th><th>Meaning</th></tr>
+    <tr><td class="pass">PASS</td><td>OpenSCAD → BOSL2</td><td>Native OpenSCAD/BOSL2 route works.</td></tr>
+    <tr><td class="pass">PASS</td><td>PythonSCAD → pybosl2</td><td>Python-native BOSL2 comparison route works.</td></tr>
+    <tr><td class="xfail">XFAIL</td><td>PythonSCAD → BOSL2 .scad via osuse()</td><td>Known OpenSCAD version/runtime compatibility mismatch.</td></tr>
+    <tr><td class="xfail">XFAIL</td><td>PythonSCAD → OpenSCAD object()</td><td>OpenSCAD object values do not currently cross as usable Python-side objects.</td></tr>
+    <tr><td class="pass">PASS</td><td>OpenSCAD PNG/STL smoke</td><td>Basic OpenSCAD rendering/export works.</td></tr>
+    <tr><td class="pass">PASS</td><td>PythonSCAD PNG/STL smoke</td><td>Basic PythonSCAD rendering/export works.</td></tr>
+    <tr><td class="pass">PASS</td><td>PythonSCAD -D define injection</td><td>Command-line parameter injection works.</td></tr>
+    <tr><td class="pass">PASS</td><td>Git CLI / functional commit</td><td>Git is installed and functional.</td></tr>
   </table>
 
-  <h2>Results</h2>
-  <ul>
-    <li class="pass">PASS — PythonSCAD -D define injection</li>
-    <li class="pass">PASS — Git CLI and functional commit</li>
-    <li class="pass">PASS — OpenSCAD PNG/STL</li>
-    <li class="pass">PASS — PythonSCAD PNG/STL</li>
-    <li class="pass">PASS — OpenSCAD → BOSL2 PNG/STL</li>
-    <li class="xfail">XFAIL — PythonSCAD → BOSL2 .scad via osuse()</li>
-    <li class="pass">PASS — PythonSCAD → pybosl2 PNG/STL</li>
-  </ul>
-
-  <h2>BOSL2 comparison</h2>
   <p>
-    The supported OpenSCAD/BOSL2 and PythonSCAD/pybosl2 routes intentionally
-    use the same small rounded cuboid. The direct PythonSCAD → BOSL2 .scad
-    route remains in the test suite as a documented expected incompatibility.
+    <strong>XFAIL</strong> means the route is actively executed and is expected
+    to fail for one specific documented compatibility reason. A different
+    failure or an unexpected success makes the suite fail so the status must be
+    reviewed instead of silently becoming stale.
+  </p>
+
+  <h2>Interoperability findings</h2>
+
+  <h3>XFAIL — PythonSCAD → BOSL2 .scad</h3>
+  <p>
+    BOSL2 <code>std.scad</code> relies on OpenSCAD's date-based
+    <code>version_num()</code> compatibility gate. PythonSCAD exposes its own
+    semantic-version value through the SCAD compatibility runtime, so BOSL2
+    rejects the runtime before the test geometry is created.
+  </p>
+
+  <h3>XFAIL — PythonSCAD → OpenSCAD object()</h3>
+  <p>
+    OpenSCAD experimental <code>object()</code> values currently do not cross
+    the PythonSCAD/OpenSCAD boundary as usable Python-side objects. This blocks
+    the object-based library architecture tested here even though conventional
+    module/function interoperability can work.
+  </p>
+
+  <p>
+    Together these findings show that PythonSCAD can consume useful conventional
+    OpenSCAD code, but advanced OpenSCAD libraries can depend on runtime and
+    value semantics that PythonSCAD does not reproduce identically.
+  </p>
+
+  <h2>Supported BOSL2 geometry comparison</h2>
+  <p>
+    These are the two currently supported BOSL2 routes. Both intentionally
+    render the same small rounded cuboid.
   </p>
 
   <div class="comparison">
@@ -58,31 +80,29 @@
     </div>
   </div>
 
-  <h3>Known incompatibility: PythonSCAD → BOSL2 .scad</h3>
-  <p>
-    This route is executed as an XFAIL. BOSL2 <code>std.scad</code> relies on
-    OpenSCAD's date-based <code>version_num()</code> compatibility check.
-    PythonSCAD exposes its own semantic-version value through the SCAD runtime,
-    so BOSL2 rejects the runtime before the test geometry is created.
-  </p>
-  <p>
-    The suite accepts only that documented failure. Unexpected success or a
-    different failure causes the verification job to fail and requires review.
-  </p>
-
   <h2>Base smoke renders</h2>
-  <h3>OpenSCAD</h3>
-  <img src="openscad/smoke.png" alt="OpenSCAD smoke render">
+  <div class="comparison">
+    <div>
+      <h3>OpenSCAD</h3>
+      <img src="openscad/smoke.png" alt="OpenSCAD smoke render">
+    </div>
+    <div>
+      <h3>PythonSCAD</h3>
+      <img src="pythonscad/smoke.png" alt="PythonSCAD smoke render">
+    </div>
+  </div>
 
-  <h3>PythonSCAD</h3>
-  <img src="pythonscad/smoke.png" alt="PythonSCAD smoke render">
-
-  <h2>PythonSCAD interoperability conclusion</h2>
-  <ul>
-    <li>OpenSCAD experimental <code>object()</code> values do not currently cross the PythonSCAD boundary as usable object APIs.</li>
-    <li>Advanced OpenSCAD libraries can depend on OpenSCAD runtime semantics that PythonSCAD does not reproduce identically.</li>
-    <li>For BOSL2, the preferred PythonSCAD route is <code>pybosl2</code>; native BOSL2 remains the OpenSCAD route.</li>
-  </ul>
+  <h2>Environment</h2>
+  <table>
+    <tr><th>Test suite</th><td><code>latest</code></td></tr>
+    <tr><th>Toolchain image</th><td><code>ghcr.io/brainboxemb/scad-toolchain:edge</code></td></tr>
+    <tr><th>OpenSCAD</th><td>OpenSCAD version 2026.09.03.nightly</td></tr>
+    <tr><th>PythonSCAD</th><td>PythonSCAD version 1.1.2</td></tr>
+    <tr><th>Python</th><td>Python 3.12.3</td></tr>
+    <tr><th>Git</th><td>git version 2.43.0</td></tr>
+    <tr><th>BOSL2</th><td>v2.0.752</td></tr>
+    <tr><th>pybosl2</th><td>0.6.7</td></tr>
+  </table>
 
   <h2>Raw outputs</h2>
   <ul>
