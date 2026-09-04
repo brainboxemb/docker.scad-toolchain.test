@@ -78,6 +78,10 @@ run_expected_failure() {
   return 1
 }
 
+# -------------------------------------------------------------------
+# 1. Toolchain / environment
+# -------------------------------------------------------------------
+
 echo "== Toolchain information =="
 scad-toolchain-info
 
@@ -110,8 +114,9 @@ git -C "$GIT_TEST_DIR" commit -q -m "Git smoke test"
 git -C "$GIT_TEST_DIR" rev-parse --verify HEAD >/dev/null
 rm -rf "$GIT_TEST_DIR"
 
-echo
-bash "$ROOT/scripts/test-pythonscad-defines.sh"
+# -------------------------------------------------------------------
+# 2. Base functionality
+# -------------------------------------------------------------------
 
 run_checked "OpenSCAD PNG" \
   xvfb-run -a openscad \
@@ -126,16 +131,6 @@ run_checked "OpenSCAD STL" \
     -o "${OUT}/openscad/smoke.stl" \
     "${ROOT}/test/openscad/smoke.scad"
 test -s "${OUT}/openscad/smoke.stl"
-
-
-echo
-echo "== PythonSCAD embedded sys.path probe =="
-run_checked "PythonSCAD sys.path probe" \
-  xvfb-run -a pythonscad \
-    -o "${OUT}/pythonscad/path-probe.stl" \
-    --trust-python \
-    "${ROOT}/test/pythonscad/python_path_probe.py"
-test -s "${OUT}/pythonscad/path-probe.stl"
 
 run_checked "PythonSCAD PNG" \
   xvfb-run -a pythonscad \
@@ -154,7 +149,24 @@ run_checked "PythonSCAD STL" \
 test -s "${OUT}/pythonscad/smoke.stl"
 
 # -------------------------------------------------------------------
-# BOSL2 capability comparison
+# 3. Additional runtime tests
+# -------------------------------------------------------------------
+
+echo
+echo "== PythonSCAD -D define test =="
+bash "$ROOT/scripts/test-pythonscad-defines.sh"
+
+echo
+echo "== PythonSCAD embedded sys.path probe =="
+run_checked "PythonSCAD sys.path probe" \
+  xvfb-run -a pythonscad \
+    -o "${OUT}/pythonscad/path-probe.stl" \
+    --trust-python \
+    "${ROOT}/test/pythonscad/python_path_probe.py"
+test -s "${OUT}/pythonscad/path-probe.stl"
+
+# -------------------------------------------------------------------
+# 4. Library / interoperability
 # -------------------------------------------------------------------
 
 run_checked "OpenSCAD -> BOSL2 PNG" \
@@ -171,38 +183,6 @@ run_checked "OpenSCAD -> BOSL2 STL" \
     "${ROOT}/test/openscad/bosl2.scad"
 test -s "${OUT}/bosl2-openscad/model.stl"
 
-
-# Object probe output directory is created above with the other test outputs.
-# Known incompatibility probe: OpenSCAD experimental object() values do not
-# currently cross into PythonSCAD as usable objects.
-run_expected_failure \
-  "PythonSCAD -> OpenSCAD object() (expected incompatibility)" \
-  "PYTHONSCAD_OPENSCAD_OBJECT_XFAIL" \
-  env \
-    OPENSCAD_OBJECT_PROBE_SCAD="${ROOT}/test/pythonscad/openscad_object/object_api.scad" \
-    xvfb-run -a pythonscad \
-      --enable=object-function \
-      -o "${OUT}/pythonscad-openscad-object/xfail.stl" \
-      --trust-python \
-      "${ROOT}/test/pythonscad/openscad_object/object_bridge_probe.py"
-
-# Known incompatibility probe.
-#
-# BOSL2/std.scad uses OpenSCAD's date-based version_num() as a compatibility
-# gate. PythonSCAD reports its own semantic-version value through the SCAD
-# compatibility runtime, so BOSL2 currently rejects the runtime.
-#
-# This remains an active test. Only the documented failure is accepted.
-# Unexpected success or a different failure makes the suite fail so that the
-# interoperability assessment cannot silently become stale.
-run_expected_failure \
-  "PythonSCAD -> BOSL2 SCAD (expected incompatibility)" \
-  "BOSL2 requires OpenSCAD version 2021.01 or later." \
-  xvfb-run -a pythonscad \
-    -o "${OUT}/bosl2-pythonscad-scad/xfail.stl" \
-    --trust-python \
-    "${ROOT}/test/pythonscad/bosl2_scad.py"
-
 run_checked "PythonSCAD -> pybosl2 PNG" \
   xvfb-run -a pythonscad \
     --render \
@@ -218,6 +198,32 @@ run_checked "PythonSCAD -> pybosl2 STL" \
     --trust-python \
     "${ROOT}/test/pythonscad/pybosl2_consumer.py"
 test -s "${OUT}/bosl2-pythonscad-py/model.stl"
+
+# Known incompatibility probe:
+# BOSL2/std.scad uses OpenSCAD's date-based version_num() as a compatibility
+# gate. PythonSCAD reports its own semantic-version value through the SCAD
+# compatibility runtime, so BOSL2 currently rejects the runtime.
+run_expected_failure \
+  "PythonSCAD -> BOSL2 SCAD (expected incompatibility)" \
+  "BOSL2 requires OpenSCAD version 2021.01 or later." \
+  xvfb-run -a pythonscad \
+    -o "${OUT}/bosl2-pythonscad-scad/xfail.stl" \
+    --trust-python \
+    "${ROOT}/test/pythonscad/bosl2_scad.py"
+
+# Known incompatibility probe:
+# OpenSCAD experimental object() values do not currently cross into PythonSCAD
+# as usable Python-side objects.
+run_expected_failure \
+  "PythonSCAD -> OpenSCAD object() (expected incompatibility)" \
+  "PYTHONSCAD_OPENSCAD_OBJECT_XFAIL" \
+  env \
+    OPENSCAD_OBJECT_PROBE_SCAD="${ROOT}/test/pythonscad/openscad_object/object_api.scad" \
+    xvfb-run -a pythonscad \
+      --enable=object-function \
+      -o "${OUT}/pythonscad-openscad-object/xfail.stl" \
+      --trust-python \
+      "${ROOT}/test/pythonscad/openscad_object/object_bridge_probe.py"
 
 echo
 echo "All supported SCAD toolchain consumer tests passed; documented XFAILs matched expectations."

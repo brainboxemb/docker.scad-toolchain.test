@@ -363,3 +363,38 @@ The environment variable only supplies the location; `osuse()` is the
 PythonSCAD API that opens the OpenSCAD library. This keeps the probe portable
 between GitHub Actions and local Docker runs without hardcoding a workspace
 path.
+
+
+## Test execution order
+
+`run-tests.sh` follows the dependency chain from the container environment to
+the most advanced interoperability checks:
+
+```text
+1. Toolchain / environment
+   - toolchain info
+   - public commands
+   - environment library paths
+   - Git functional smoke test
+
+2. Base functionality
+   - OpenSCAD PNG
+   - OpenSCAD STL
+   - PythonSCAD PNG
+   - PythonSCAD STL
+
+3. Additional runtime tests
+   - PythonSCAD -D define injection
+   - PythonSCAD embedded sys.path probe
+
+4. Library / interoperability
+   - OpenSCAD -> BOSL2
+   - PythonSCAD -> pybosl2
+   - XFAIL PythonSCAD -> BOSL2 .scad
+   - XFAIL PythonSCAD -> OpenSCAD object()
+```
+
+This ordering makes failures easier to interpret: first establish that the
+container and public tools are correct, then verify the two CAD engines, then
+their runtime details, and finally the advanced library/interoperability
+boundaries.

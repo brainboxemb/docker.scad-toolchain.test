@@ -311,3 +311,28 @@ library = osuse(os.environ["OPENSCAD_OBJECT_PROBE_SCAD"])
 Do not obscure the interoperability test with separate path-management logic.
 The environment variable supplies only the location; `osuse()` remains the
 actual PythonSCAD/OpenSCAD-library boundary.
+
+
+## Test execution order
+
+Keep `scripts/run-tests.sh` ordered as:
+
+```text
+1. Toolchain / environment
+2. Base functionality
+3. Additional runtime tests
+4. Library / interoperability
+```
+
+Within library/interoperability, keep the supported routes first and the
+expected incompatibilities last:
+
+```text
+OpenSCAD -> BOSL2
+PythonSCAD -> pybosl2
+XFAIL PythonSCAD -> BOSL2 .scad
+XFAIL PythonSCAD -> OpenSCAD object()
+```
+
+This mirrors the dependency chain and keeps GitHub Actions logs readable during
+debugging.
