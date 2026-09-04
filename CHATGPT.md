@@ -122,7 +122,7 @@ The maintained test pattern is:
 import os
 from pathlib import Path
 
-bosl2_file = Path(os.environ["BOSL2_ROOT"]) / "shapes3d.scad"
+bosl2_file = Path(os.environ["BOSL2_ROOT"]) / "std.scad"
 bosl2 = osuse(str(bosl2_file))
 ```
 
@@ -197,3 +197,19 @@ of the test explicitly is to validate such a bridge.
 If one BOSL2 route fails, keep the failure visible and inspect the exact
 toolchain/library boundary. These tests exist specifically to discover those
 limitations.
+
+
+## BOSL2 library entrypoint
+
+Use `std.scad` as the BOSL2 entrypoint for PythonSCAD interoperability tests:
+
+```python
+import os
+from pathlib import Path
+
+bosl2_file = Path(os.environ["BOSL2_ROOT"]) / "std.scad"
+bosl2 = osuse(str(bosl2_file))
+```
+
+Do not directly `osuse()` `shapes3d.scad`. BOSL2 component files rely on the
+standard constants/dependencies loaded by `std.scad`.

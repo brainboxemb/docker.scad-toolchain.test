@@ -115,7 +115,7 @@ from pathlib import Path
 
 from pythonscad import *
 
-bosl2_file = Path(os.environ["BOSL2_ROOT"]) / "shapes3d.scad"
+bosl2_file = Path(os.environ["BOSL2_ROOT"]) / "std.scad"
 bosl2 = osuse(str(bosl2_file))
 
 part = bosl2.cuboid([30, 20, 10], rounding=3)
@@ -258,3 +258,21 @@ The release tag itself selects `:v0.2.0`; `toolchain.env` can remain on
 
 A failed interoperability test is useful evidence. Do not mask it merely to make
 the suite green.
+
+
+## BOSL2 library entrypoint
+
+BOSL2 should be loaded through `std.scad`, including from PythonSCAD.
+
+```text
+OpenSCAD
+    include <BOSL2/std.scad>
+
+PythonSCAD
+    osuse(BOSL2_ROOT / "std.scad")
+```
+
+Do not load `shapes3d.scad` directly just because the test uses `cuboid()`.
+`shapes3d.scad` expects the standard constants and dependencies established by
+`std.scad`; direct loading causes missing-symbol warnings such as `CENTER`,
+`UP`, and `EDGES_ALL`.
