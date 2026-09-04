@@ -8,12 +8,20 @@ External consumer-validation suite for
 This repository intentionally tests a **published** toolchain image rather than
 repeating the image's internal build checks.
 
-## Current target
+## Current development target
+
+`main` tests the latest published development image:
 
 ```text
 SCAD_TOOLCHAIN_IMAGE=ghcr.io/brainboxemb/scad-toolchain
-SCAD_TOOLCHAIN_VERSION=v0.2.0
+SCAD_TOOLCHAIN_VERSION=edge
 ```
+
+This is intentional: `v0.2.0` does not exist until the toolchain release is
+actually published.
+
+A released test-suite tag does **not** use `edge`. Its exact immutable
+toolchain version is derived from the tag name.
 
 ## Release tags
 
@@ -30,6 +38,27 @@ test-v0.2.0-toolchain-v0.2.0
 ```
 
 after toolchain v0.2.0 has actually been published and the suite is green.
+
+### Development versus release resolution
+
+The workflow resolves the image version as follows:
+
+```text
+main / pull request
+    -> version from toolchain.env
+    -> normally :edge
+
+workflow_dispatch
+    -> optional explicit override
+    -> for example :edge or :v0.2.0
+
+tag test-v0.2.0-toolchain-v0.2.0
+    -> automatically :v0.2.0
+```
+
+This avoids editing `toolchain.env` back and forth during the release process
+while still guaranteeing that released test reports use an immutable toolchain
+tag.
 
 ## Base tests
 
@@ -184,11 +213,16 @@ rebuilt after each successful publish and keeps historical reports.
 For a new toolchain capability:
 
 1. add it to `docker.scad-toolchain`;
-2. publish a new immutable image tag;
-3. manually test that image here if needed;
-4. update `toolchain.env`;
-5. verify `/latest/`;
-6. create the immutable test-suite tag.
+2. let toolchain `main` publish/update `:edge`;
+3. let this repository's `main` test `:edge`;
+4. fix problems until the external consumer suite is green;
+5. publish the immutable toolchain tag, for example `v0.2.0`;
+6. optionally run this test workflow manually against `v0.2.0`;
+7. create the immutable test-suite tag, for example
+   `test-v0.2.0-toolchain-v0.2.0`.
+
+The release tag itself selects `:v0.2.0`; `toolchain.env` can remain on
+`:edge` for normal development.
 
 A failed interoperability test is useful evidence. Do not mask it merely to make
 the suite green.

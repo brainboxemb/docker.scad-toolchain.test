@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       toolchain_version:
-        description: 'Optional toolchain version override, e.g. v0.2.0'
+        description: 'Optional toolchain version override, e.g. edge or v0.2.0'
         required: false
         type: string
 
@@ -39,14 +39,29 @@ jobs:
           source ./toolchain.env
 
           VERSION="${SCAD_TOOLCHAIN_VERSION}"
-          if [[ -n "${OVERRIDE_VERSION:-}" ]]; then
-            VERSION="${OVERRIDE_VERSION}"
-          fi
+          SUITE_VERSION="latest"
 
+          # A released test tag encodes the exact immutable toolchain version:
+          #
+          #   test-v0.2.0-toolchain-v0.2.0
+          #
+          # Development on main deliberately uses the mutable :edge image.
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             SUITE_VERSION="${GITHUB_REF_NAME}"
-          else
-            SUITE_VERSION="latest"
+
+            if [[ "${GITHUB_REF_NAME}" =~ ^test-v.+-toolchain-(v.+)$ ]]; then
+              VERSION="${BASH_REMATCH[1]}"
+            else
+              echo "ERROR: unsupported test tag format: ${GITHUB_REF_NAME}" >&2
+              exit 1
+            fi
+          fi
+
+          # Manual dispatch may explicitly select a toolchain image version.
+          # This is mainly useful for validating a candidate tag before making
+          # a permanent test-suite release.
+          if [[ -n "${OVERRIDE_VERSION:-}" ]]; then
+            VERSION="${OVERRIDE_VERSION}"
           fi
 
           echo "image=${SCAD_TOOLCHAIN_IMAGE}" >> "$GITHUB_OUTPUT"

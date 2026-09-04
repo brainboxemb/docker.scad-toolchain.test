@@ -27,19 +27,44 @@ Never move or overwrite a released test tag.
 Manual workflow dispatch may temporarily override the toolchain version for
 development.
 
-The first BOSL2-capable line is intended to target:
+During development, `main` deliberately targets:
 
 ```text
-SCAD_TOOLCHAIN_VERSION=v0.2.0
+SCAD_TOOLCHAIN_VERSION=edge
 ```
 
-and can be released as:
+A permanent test-suite release encodes the immutable toolchain version in its
+tag:
 
 ```text
 test-v0.2.0-toolchain-v0.2.0
 ```
 
-after the published image passes.
+The workflow parses `v0.2.0` from that tag and tests the corresponding
+`:v0.2.0` image. Do not change `toolchain.env` to a not-yet-published release
+tag just to prepare a release.
+
+## Toolchain image resolution
+
+Keep development and release behavior separate:
+
+```text
+main / pull request
+    -> toolchain.env
+    -> normally :edge
+
+workflow_dispatch
+    -> optional explicit version override
+
+test-vX-toolchain-vY tag
+    -> automatically :vY
+```
+
+This is important because the external consumer tests should run against
+`:edge` **before** a new immutable toolchain release exists.
+
+Once a test-suite release tag exists, it must never silently follow `:edge`.
+Its toolchain version is encoded in the tag and is immutable.
 
 ## What must be tested
 
