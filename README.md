@@ -398,3 +398,21 @@ This ordering makes failures easier to interpret: first establish that the
 container and public tools are correct, then verify the two CAD engines, then
 their runtime details, and finally the advanced library/interoperability
 boundaries.
+
+
+## Verification report order
+
+The generated report mirrors the execution structure:
+
+```text
+Test summary
+1. Toolchain / environment
+2. Base functionality
+3. Additional runtime tests
+4. Library / interoperability
+Raw outputs
+```
+
+The complete PASS/XFAIL table remains at the top so known interoperability
+limits are visible immediately, while the detailed sections follow the same
+dependency order as `run-tests.sh`.

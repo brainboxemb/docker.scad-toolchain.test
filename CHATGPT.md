@@ -336,3 +336,23 @@ XFAIL PythonSCAD -> OpenSCAD object()
 
 This mirrors the dependency chain and keeps GitHub Actions logs readable during
 debugging.
+
+
+## Verification report order
+
+Keep `scripts/build-report.sh` structurally synchronized with
+`scripts/run-tests.sh`.
+
+The HTML report should use:
+
+```text
+Test summary
+1. Toolchain / environment
+2. Base functionality
+3. Additional runtime tests
+4. Library / interoperability
+Raw outputs
+```
+
+The summary table belongs at the top and must show both PASS and XFAIL routes
+immediately, even though detailed interoperability content appears in section 4.

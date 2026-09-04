@@ -45,32 +45,98 @@ cat > "${SITE}/index.html" <<EOF
     .xfail { font-weight: 700; }
     .comparison { display: grid; grid-template-columns: repeat(auto-fit,minmax(300px,1fr)); gap: 1rem; }
     .status-table td:first-child { white-space: nowrap; font-weight: 700; }
+    .group-row th { padding-top: 1rem; }
   </style>
 </head>
 <body>
   <h1>SCAD toolchain verification</h1>
 
   <h2>Test summary</h2>
+  <p>
+    The summary follows the same dependency order as <code>run-tests.sh</code>.
+    XFAIL means the compatibility boundary is actively tested and currently
+    expected to fail for one specific documented reason.
+  </p>
+
   <table class="status-table">
-    <tr><th>Status</th><th>Route / test</th><th>Meaning</th></tr>
+    <tr><th>Status</th><th>Test</th><th>Meaning</th></tr>
+
+    <tr class="group-row"><th colspan="3">1. Toolchain / environment</th></tr>
+    <tr><td class="pass">PASS</td><td>Toolchain information</td><td>Toolchain metadata is available.</td></tr>
+    <tr><td class="pass">PASS</td><td>Public commands</td><td>OpenSCAD, PythonSCAD, Python and Git are exposed.</td></tr>
+    <tr><td class="pass">PASS</td><td>Environment library paths</td><td>BOSL2 and Python package paths are present.</td></tr>
+    <tr><td class="pass">PASS</td><td>Git functional smoke test</td><td>Git can initialize and create a commit.</td></tr>
+
+    <tr class="group-row"><th colspan="3">2. Base functionality</th></tr>
+    <tr><td class="pass">PASS</td><td>OpenSCAD PNG/STL</td><td>Basic OpenSCAD render and export work.</td></tr>
+    <tr><td class="pass">PASS</td><td>PythonSCAD PNG/STL</td><td>Basic PythonSCAD render and export work.</td></tr>
+
+    <tr class="group-row"><th colspan="3">3. Additional runtime tests</th></tr>
+    <tr><td class="pass">PASS</td><td>PythonSCAD -D define injection</td><td>Command-line parameter injection works.</td></tr>
+    <tr><td class="pass">PASS</td><td>PythonSCAD embedded sys.path probe</td><td>Embedded Python runtime path inspection works.</td></tr>
+
+    <tr class="group-row"><th colspan="3">4. Library / interoperability</th></tr>
     <tr><td class="pass">PASS</td><td>OpenSCAD → BOSL2</td><td>Native OpenSCAD/BOSL2 route works.</td></tr>
     <tr><td class="pass">PASS</td><td>PythonSCAD → pybosl2</td><td>Python-native BOSL2 comparison route works.</td></tr>
     <tr><td class="xfail">XFAIL</td><td>PythonSCAD → BOSL2 .scad via osuse()</td><td>Known OpenSCAD version/runtime compatibility mismatch.</td></tr>
     <tr><td class="xfail">XFAIL</td><td>PythonSCAD → OpenSCAD object()</td><td>OpenSCAD object values do not currently cross as usable Python-side objects.</td></tr>
-    <tr><td class="pass">PASS</td><td>OpenSCAD PNG/STL smoke</td><td>Basic OpenSCAD rendering/export works.</td></tr>
-    <tr><td class="pass">PASS</td><td>PythonSCAD PNG/STL smoke</td><td>Basic PythonSCAD rendering/export works.</td></tr>
-    <tr><td class="pass">PASS</td><td>PythonSCAD -D define injection</td><td>Command-line parameter injection works.</td></tr>
-    <tr><td class="pass">PASS</td><td>Git CLI / functional commit</td><td>Git is installed and functional.</td></tr>
   </table>
 
   <p>
-    <strong>XFAIL</strong> means the route is actively executed and is expected
-    to fail for one specific documented compatibility reason. A different
-    failure or an unexpected success makes the suite fail so the status must be
-    reviewed instead of silently becoming stale.
+    A documented XFAIL is not ignored. A different failure or an unexpected
+    success makes the verification suite fail so the compatibility assessment
+    must be reviewed.
   </p>
 
-  <h2>Interoperability findings</h2>
+  <h2>1. Toolchain / environment</h2>
+  <table>
+    <tr><th>Test suite</th><td><code>${SUITE_VERSION}</code></td></tr>
+    <tr><th>Toolchain image</th><td><code>${TOOLCHAIN_IMAGE}:${TOOLCHAIN_VERSION}</code></td></tr>
+    <tr><th>OpenSCAD</th><td>${OPENSCAD_VERSION}</td></tr>
+    <tr><th>PythonSCAD</th><td>${PYTHONSCAD_VERSION}</td></tr>
+    <tr><th>Python</th><td>${PYTHON_VERSION}</td></tr>
+    <tr><th>Git</th><td>${GIT_VERSION}</td></tr>
+    <tr><th>BOSL2</th><td>v${BOSL2_VERSION_INFO}</td></tr>
+    <tr><th>pybosl2</th><td>${PYBOSL2_VERSION_INFO}</td></tr>
+  </table>
+
+  <h2>2. Base functionality</h2>
+  <div class="comparison">
+    <div>
+      <h3>OpenSCAD</h3>
+      <img src="openscad/smoke.png" alt="OpenSCAD smoke render">
+    </div>
+    <div>
+      <h3>PythonSCAD</h3>
+      <img src="pythonscad/smoke.png" alt="PythonSCAD smoke render">
+    </div>
+  </div>
+
+  <h2>3. Additional runtime tests</h2>
+  <p>
+    The suite also verifies PythonSCAD command-line define injection and records
+    the embedded Python <code>sys.path</code>. These are runtime diagnostics
+    rather than geometry comparisons.
+  </p>
+
+  <h2>4. Library / interoperability</h2>
+
+  <h3>Supported BOSL2 routes</h3>
+  <p>
+    These two supported routes intentionally render the same small rounded
+    cuboid.
+  </p>
+
+  <div class="comparison">
+    <div>
+      <h3>OpenSCAD → BOSL2</h3>
+      <img src="bosl2-openscad/model.png" alt="OpenSCAD BOSL2 render">
+    </div>
+    <div>
+      <h3>PythonSCAD → pybosl2</h3>
+      <img src="bosl2-pythonscad-py/model.png" alt="PythonSCAD pybosl2 render">
+    </div>
+  </div>
 
   <h3>XFAIL — PythonSCAD → BOSL2 .scad</h3>
   <p>
@@ -94,53 +160,12 @@ cat > "${SITE}/index.html" <<EOF
     value semantics that PythonSCAD does not reproduce identically.
   </p>
 
-  <h2>Supported BOSL2 geometry comparison</h2>
-  <p>
-    These are the two currently supported BOSL2 routes. Both intentionally
-    render the same small rounded cuboid.
-  </p>
-
-  <div class="comparison">
-    <div>
-      <h3>OpenSCAD → BOSL2</h3>
-      <img src="bosl2-openscad/model.png" alt="OpenSCAD BOSL2 render">
-    </div>
-    <div>
-      <h3>PythonSCAD → pybosl2</h3>
-      <img src="bosl2-pythonscad-py/model.png" alt="PythonSCAD pybosl2 render">
-    </div>
-  </div>
-
-  <h2>Base smoke renders</h2>
-  <div class="comparison">
-    <div>
-      <h3>OpenSCAD</h3>
-      <img src="openscad/smoke.png" alt="OpenSCAD smoke render">
-    </div>
-    <div>
-      <h3>PythonSCAD</h3>
-      <img src="pythonscad/smoke.png" alt="PythonSCAD smoke render">
-    </div>
-  </div>
-
-  <h2>Environment</h2>
-  <table>
-    <tr><th>Test suite</th><td><code>${SUITE_VERSION}</code></td></tr>
-    <tr><th>Toolchain image</th><td><code>${TOOLCHAIN_IMAGE}:${TOOLCHAIN_VERSION}</code></td></tr>
-    <tr><th>OpenSCAD</th><td>${OPENSCAD_VERSION}</td></tr>
-    <tr><th>PythonSCAD</th><td>${PYTHONSCAD_VERSION}</td></tr>
-    <tr><th>Python</th><td>${PYTHON_VERSION}</td></tr>
-    <tr><th>Git</th><td>${GIT_VERSION}</td></tr>
-    <tr><th>BOSL2</th><td>v${BOSL2_VERSION_INFO}</td></tr>
-    <tr><th>pybosl2</th><td>${PYBOSL2_VERSION_INFO}</td></tr>
-  </table>
-
   <h2>Raw outputs</h2>
   <ul>
-    <li><a href="bosl2-openscad/model.stl">OpenSCAD → BOSL2 STL</a></li>
-    <li><a href="bosl2-pythonscad-py/model.stl">PythonSCAD → pybosl2 STL</a></li>
     <li><a href="openscad/smoke.stl">OpenSCAD smoke STL</a></li>
     <li><a href="pythonscad/smoke.stl">PythonSCAD smoke STL</a></li>
+    <li><a href="bosl2-openscad/model.stl">OpenSCAD → BOSL2 STL</a></li>
+    <li><a href="bosl2-pythonscad-py/model.stl">PythonSCAD → pybosl2 STL</a></li>
   </ul>
 </body>
 </html>
