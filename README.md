@@ -342,3 +342,17 @@ the compatibility status can be reviewed.
 The generated verification page puts PASS/XFAIL status first, followed by the
 two interoperability findings, and only then shows renders for supported
 routes.
+
+
+#### PythonSCAD script path note
+
+PythonSCAD's embedded execution does not define the normal script-file variable
+available in ordinary Python execution. The object interoperability probe
+therefore receives the absolute SCAD library path from the verification harness:
+
+```text
+OPENSCAD_OBJECT_PROBE_SCAD
+```
+
+This keeps the probe portable between GitHub Actions and local Docker runs
+without hardcoding a workspace path.

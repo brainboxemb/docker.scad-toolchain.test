@@ -291,3 +291,19 @@ The report order is intentionally:
 4. smoke renders
 5. environment / raw outputs
 ```
+
+
+### PythonSCAD script-file path rule
+
+Do not rely on the normal Python script-file variable inside PythonSCAD scripts;
+PythonSCAD executes source through its embedded runtime and does not define it.
+
+For the object XFAIL probe, `run-tests.sh` provides the absolute SCAD library
+path through:
+
+```text
+OPENSCAD_OBJECT_PROBE_SCAD
+```
+
+Keep this environment-based path rather than introducing GitHub-specific
+absolute paths.

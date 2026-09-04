@@ -178,11 +178,13 @@ test -s "${OUT}/bosl2-openscad/model.stl"
 run_expected_failure \
   "PythonSCAD -> OpenSCAD object() (expected incompatibility)" \
   "PYTHONSCAD_OPENSCAD_OBJECT_XFAIL" \
-  xvfb-run -a pythonscad \
-    --enable=object-function \
-    -o "${OUT}/pythonscad-openscad-object/xfail.stl" \
-    --trust-python \
-    "${ROOT}/test/pythonscad/openscad_object/object_bridge_probe.py"
+  env \
+    OPENSCAD_OBJECT_PROBE_SCAD="${ROOT}/test/pythonscad/openscad_object/object_api.scad" \
+    xvfb-run -a pythonscad \
+      --enable=object-function \
+      -o "${OUT}/pythonscad-openscad-object/xfail.stl" \
+      --trust-python \
+      "${ROOT}/test/pythonscad/openscad_object/object_bridge_probe.py"
 
 # Known incompatibility probe.
 #
