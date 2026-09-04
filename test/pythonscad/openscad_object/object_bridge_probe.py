@@ -1,17 +1,10 @@
 import os
-from pathlib import Path
 
 from pythonscad import *
 
-# PythonSCAD executes source through its embedded runtime and does not provide
-# Python's normal script-file variable. The verification harness therefore
-# supplies the SCAD source path explicitly.
-library_file = Path(os.environ["OPENSCAD_OBJECT_PROBE_SCAD"])
-
-if not library_file.is_file():
-    raise FileNotFoundError(f"OpenSCAD object probe library not found: {library_file}")
-
-library = osuse(str(library_file))
+# The verification harness supplies the absolute path to the OpenSCAD library.
+# osuse() is the PythonSCAD API that actually loads the .scad file.
+library = osuse(os.environ["OPENSCAD_OBJECT_PROBE_SCAD"])
 
 item = library.object_probe_create(4)
 

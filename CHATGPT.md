@@ -295,9 +295,6 @@ The report order is intentionally:
 
 ### PythonSCAD script-file path rule
 
-Do not rely on the normal Python script-file variable inside PythonSCAD scripts;
-PythonSCAD executes source through its embedded runtime and does not define it.
-
 For the object XFAIL probe, `run-tests.sh` provides the absolute SCAD library
 path through:
 
@@ -305,5 +302,12 @@ path through:
 OPENSCAD_OBJECT_PROBE_SCAD
 ```
 
-Keep this environment-based path rather than introducing GitHub-specific
-absolute paths.
+The PythonSCAD script must load that file directly with:
+
+```python
+library = osuse(os.environ["OPENSCAD_OBJECT_PROBE_SCAD"])
+```
+
+Do not obscure the interoperability test with separate path-management logic.
+The environment variable supplies only the location; `osuse()` remains the
+actual PythonSCAD/OpenSCAD-library boundary.

@@ -346,13 +346,20 @@ routes.
 
 #### PythonSCAD script path note
 
-PythonSCAD's embedded execution does not define the normal script-file variable
-available in ordinary Python execution. The object interoperability probe
-therefore receives the absolute SCAD library path from the verification harness:
+The object interoperability probe receives the absolute SCAD library path
+from the verification harness through:
 
 ```text
 OPENSCAD_OBJECT_PROBE_SCAD
 ```
 
-This keeps the probe portable between GitHub Actions and local Docker runs
-without hardcoding a workspace path.
+The PythonSCAD side then loads the library directly with:
+
+```python
+library = osuse(os.environ["OPENSCAD_OBJECT_PROBE_SCAD"])
+```
+
+The environment variable only supplies the location; `osuse()` is the
+PythonSCAD API that opens the OpenSCAD library. This keeps the probe portable
+between GitHub Actions and local Docker runs without hardcoding a workspace
+path.
