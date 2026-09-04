@@ -10,6 +10,7 @@ mkdir -p \
   "${OUT}/pythonscad" \
   "${OUT}/bosl2-openscad" \
   "${OUT}/bosl2-pythonscad-scad" \
+  "${OUT}/pythonscad-openscad-object" \
   "${OUT}/bosl2-pythonscad-py"
 
 run_checked() {
@@ -171,6 +172,7 @@ run_checked "OpenSCAD -> BOSL2 STL" \
 test -s "${OUT}/bosl2-openscad/model.stl"
 
 
+# Object probe output directory is created above with the other test outputs.
 # Known incompatibility probe: OpenSCAD experimental object() values do not
 # currently cross into PythonSCAD as usable objects.
 run_expected_failure \
