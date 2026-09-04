@@ -55,7 +55,12 @@ command -v git
 echo
 echo "== Environment library paths =="
 printf 'OPENSCADPATH=%s\n' "${OPENSCADPATH:-<unset>}"
+printf 'BOSL2_ROOT=%s\n' "${BOSL2_ROOT:-<unset>}"
 printf 'PYTHONPATH=%s\n' "${PYTHONPATH:-<unset>}"
+
+test -n "${BOSL2_ROOT:-}"
+test -f "${BOSL2_ROOT}/std.scad"
+test -f "${BOSL2_ROOT}/shapes3d.scad"
 
 echo
 echo "== Git functional smoke test =="

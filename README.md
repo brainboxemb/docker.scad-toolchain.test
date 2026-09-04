@@ -104,12 +104,44 @@ cuboid([30, 20, 10], rounding=3);
 
 ### PythonSCAD consuming BOSL2 SCAD
 
+PythonSCAD `osuse()` needs a real filesystem path; it does not resolve
+`BOSL2/shapes3d.scad` through `OPENSCADPATH`.
+
+The toolchain therefore exposes `BOSL2_ROOT`:
+
 ```python
+import os
+from pathlib import Path
+
 from pythonscad import *
 
-bosl2 = osuse("BOSL2/shapes3d.scad")
+bosl2_file = Path(os.environ["BOSL2_ROOT"]) / "shapes3d.scad"
+bosl2 = osuse(str(bosl2_file))
+
 part = bosl2.cuboid([30, 20, 10], rounding=3)
 part.show()
+```
+
+### BOSL2 filesystem path
+
+The external test suite requires the published image to expose:
+
+```text
+BOSL2_ROOT=/opt/openscad-libraries/BOSL2
+```
+
+The exact current value is shown in the logs, but consumers should use the
+environment variable rather than hardcoding the installation directory.
+
+This is deliberately tested separately from `OPENSCADPATH` because the two
+serve different consumers:
+
+```text
+OpenSCAD include/use
+    -> OPENSCADPATH
+
+PythonSCAD osuse()/osinclude()
+    -> explicit path rooted at BOSL2_ROOT
 ```
 
 ### PythonSCAD + pybosl2

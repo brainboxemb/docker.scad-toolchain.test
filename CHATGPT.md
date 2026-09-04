@@ -106,6 +106,29 @@ Do not turn this repository into a large subjective API benchmark. Small
 technical comparison/probe tests belong here; a large design study can be split
 out later if needed.
 
+## BOSL2 SCAD path in PythonSCAD
+
+PythonSCAD `osuse()` does not use `OPENSCADPATH` to resolve a string such as:
+
+```text
+BOSL2/shapes3d.scad
+```
+
+The toolchain publishes `BOSL2_ROOT` for this purpose.
+
+The maintained test pattern is:
+
+```python
+import os
+from pathlib import Path
+
+bosl2_file = Path(os.environ["BOSL2_ROOT"]) / "shapes3d.scad"
+bosl2 = osuse(str(bosl2_file))
+```
+
+The suite should fail clearly if `BOSL2_ROOT` is missing or the expected SCAD
+file is absent. Do not replace this with a repository-local BOSL2 checkout.
+
 ## PythonSCAD external package discovery
 
 The published toolchain installs shared external Python packages in:
