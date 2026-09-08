@@ -17,8 +17,8 @@ SCAD_TOOLCHAIN_IMAGE=ghcr.io/brainboxemb/scad-toolchain
 SCAD_TOOLCHAIN_VERSION=edge
 ```
 
-This is intentional: `v0.2.0` does not exist until the toolchain release is
-actually published.
+This is intentional: during development the suite validates the mutable
+`:edge` image before `v0.3.0` is published.
 
 A released test-suite tag does **not** use `edge`. Its exact immutable
 toolchain version is derived from the tag name.
@@ -34,7 +34,7 @@ test-v<test-suite-version>-toolchain-v<toolchain-version>
 For this capability update the intended tag is:
 
 ```text
-test-v0.2.0-toolchain-v0.2.0
+test-v0.3.0-toolchain-v0.3.0
 ```
 
 after toolchain v0.2.0 has actually been published and the suite is green.
@@ -50,9 +50,9 @@ main / pull request
 
 workflow_dispatch
     -> optional explicit override
-    -> for example :edge or :v0.2.0
+    -> for example :edge or :v0.3.0
 
-tag test-v0.2.0-toolchain-v0.2.0
+tag test-v0.3.0-toolchain-v0.3.0
     -> automatically :v0.2.0
 ```
 
@@ -69,10 +69,59 @@ The suite verifies:
 - `python3`
 - `git`
 - `scad-toolchain-info`
+- `openscad-docsgen`
+- `openscad-mdimggen`
 - OpenSCAD PNG/STL
 - PythonSCAD PNG/STL
 - PythonSCAD `-D` define injection
 - functional Git init/add/commit
+
+
+## OpenSCAD documentation tooling
+
+The v0.3 suite adds an external consumer test for the documentation tooling
+introduced by toolchain v0.3.0.
+
+The published image must expose:
+
+```text
+openscad-docsgen
+openscad-mdimggen
+```
+
+The consumer source lives at:
+
+```text
+test/docsgen/docsgen.scad
+```
+
+It deliberately uses upstream docsgen syntax, beginning with a required file
+block:
+
+```scad
+// File: docsgen.scad
+```
+
+before documenting its module.
+
+The suite performs two functional checks:
+
+```text
+openscad-docsgen -m -T
+    -> lint-like parse/test mode
+
+openscad-docsgen -m
+    -> real Markdown generation
+```
+
+The generated Markdown must be non-empty and contain the expected
+`docsgen_consumer_smoke` module. This means the external suite tests actual
+published-image behavior rather than merely checking that a binary exists.
+
+`openscad-mdimggen` is checked as a public command in this step. Its richer
+Markdown/render workflow is intentionally separate from the minimal source/API
+documentation smoke test.
+
 
 ## BOSL2 capability comparison
 
@@ -206,6 +255,8 @@ docker.scad-toolchain.test/
 │   ├── build-report.sh
 │   └── build-index.sh
 ├── test/
+│   ├── docsgen/
+│   │   └── docsgen.scad
 │   ├── openscad/
 │   │   ├── smoke.scad
 │   │   └── bosl2.scad
@@ -251,7 +302,7 @@ For a new toolchain capability:
 5. publish the immutable toolchain tag, for example `v0.2.0`;
 6. optionally run this test workflow manually against `v0.2.0`;
 7. create the immutable test-suite tag, for example
-   `test-v0.2.0-toolchain-v0.2.0`.
+   `test-v0.3.0-toolchain-v0.3.0`.
 
 The release tag itself selects `:v0.2.0`; `toolchain.env` can remain on
 `:edge` for normal development.

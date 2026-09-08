@@ -8,6 +8,7 @@ rm -rf "${OUT}"
 mkdir -p \
   "${OUT}/openscad" \
   "${OUT}/pythonscad" \
+  "${OUT}/docsgen" \
   "${OUT}/bosl2-openscad" \
   "${OUT}/bosl2-pythonscad-scad" \
   "${OUT}/pythonscad-openscad-object" \
@@ -91,6 +92,8 @@ command -v openscad
 command -v pythonscad
 command -v python3
 command -v git
+command -v openscad-docsgen
+command -v openscad-mdimggen
 
 echo
 echo "== Environment library paths =="
@@ -166,7 +169,43 @@ run_checked "PythonSCAD sys.path probe" \
 test -s "${OUT}/pythonscad/path-probe.stl"
 
 # -------------------------------------------------------------------
-# 4. Library / interoperability
+# 4. Documentation tooling
+# -------------------------------------------------------------------
+
+echo
+echo "== OpenSCAD documentation tooling =="
+
+command -v openscad-docsgen >/dev/null
+command -v openscad-mdimggen >/dev/null
+
+DOCSGEN_WORK="${OUT}/docsgen"
+DOCSGEN_SOURCE="${DOCSGEN_WORK}/docsgen.scad"
+DOCSGEN_GENERATED="${DOCSGEN_SOURCE}.md"
+
+cp "${ROOT}/test/docsgen/docsgen.scad" "${DOCSGEN_SOURCE}"
+
+# Parse/test mode is the lint-like source validation route.
+run_checked "openscad-docsgen lint/parse" \
+  openscad-docsgen \
+    -m \
+    -T \
+    "${DOCSGEN_SOURCE}"
+
+# Then prove that the published image can generate real Markdown as an
+# external consumer, not just expose the executable.
+rm -f "${DOCSGEN_GENERATED}"
+run_checked "openscad-docsgen Markdown generation" \
+  openscad-docsgen \
+    -m \
+    "${DOCSGEN_SOURCE}"
+
+test -s "${DOCSGEN_GENERATED}"
+grep -q "docsgen_consumer_smoke" "${DOCSGEN_GENERATED}"
+
+echo "openscad-docsgen external consumer test passed"
+
+# -------------------------------------------------------------------
+# 5. Library / interoperability
 # -------------------------------------------------------------------
 
 run_checked "OpenSCAD -> BOSL2 PNG" \

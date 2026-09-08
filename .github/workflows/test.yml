@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       toolchain_version:
-        description: 'Optional toolchain version override, e.g. edge or v0.2.0'
+        description: 'Optional toolchain version override, e.g. edge or v0.3.0'
         required: false
         type: string
 
@@ -43,7 +43,7 @@ jobs:
 
           # A released test tag encodes the exact immutable toolchain version:
           #
-          #   test-v0.2.0-toolchain-v0.2.0
+          #   test-v0.3.0-toolchain-v0.3.0
           #
           # Development on main deliberately uses the mutable :edge image.
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then

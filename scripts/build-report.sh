@@ -13,6 +13,7 @@ OPENSCAD_VERSION="$(openscad --version 2>&1 | head -n1)"
 PYTHONSCAD_VERSION="$(pythonscad --version 2>&1 | head -n1)"
 PYTHON_VERSION="$(python3 --version 2>&1 | head -n1)"
 GIT_VERSION="$(git --version 2>&1 | head -n1)"
+DOCSGEN_VERSION="$(python3 -c 'import importlib.metadata as m; print(m.version("openscad_docsgen"))')"
 BOSL2_VERSION_INFO="${BOSL2_VERSION:-unknown}"
 PYBOSL2_VERSION_INFO="${PYBOSL2_VERSION:-unknown}"
 
@@ -20,6 +21,7 @@ rm -rf "${SITE}"
 mkdir -p \
   "${SITE}/openscad" \
   "${SITE}/pythonscad" \
+  "${SITE}/docsgen" \
   "${SITE}/bosl2-openscad" \
   "${SITE}/bosl2-pythonscad-py"
 
@@ -27,6 +29,8 @@ for dir in openscad pythonscad bosl2-openscad bosl2-pythonscad-py; do
   cp -f "${OUT}/${dir}/"*.png "${SITE}/${dir}/" 2>/dev/null || true
   cp -f "${OUT}/${dir}/"*.stl "${SITE}/${dir}/" 2>/dev/null || true
 done
+
+cp -f "${OUT}/docsgen/"*.md "${SITE}/docsgen/" 2>/dev/null || true
 
 cat > "${SITE}/index.html" <<EOF
 <!doctype html>
@@ -63,7 +67,7 @@ cat > "${SITE}/index.html" <<EOF
 
     <tr class="group-row"><th colspan="3">1. Toolchain / environment</th></tr>
     <tr><td class="pass">PASS</td><td>Toolchain information</td><td>Toolchain metadata is available.</td></tr>
-    <tr><td class="pass">PASS</td><td>Public commands</td><td>OpenSCAD, PythonSCAD, Python and Git are exposed.</td></tr>
+    <tr><td class="pass">PASS</td><td>Public commands</td><td>OpenSCAD, PythonSCAD, Python, Git and documentation tooling are exposed.</td></tr>
     <tr><td class="pass">PASS</td><td>Environment library paths</td><td>BOSL2 and Python package paths are present.</td></tr>
     <tr><td class="pass">PASS</td><td>Git functional smoke test</td><td>Git can initialize and create a commit.</td></tr>
 
@@ -75,7 +79,13 @@ cat > "${SITE}/index.html" <<EOF
     <tr><td class="pass">PASS</td><td>PythonSCAD -D define injection</td><td>Command-line parameter injection works.</td></tr>
     <tr><td class="pass">PASS</td><td>PythonSCAD embedded sys.path probe</td><td>Embedded Python runtime path inspection works.</td></tr>
 
-    <tr class="group-row"><th colspan="3">4. Library / interoperability</th></tr>
+    <tr class="group-row"><th colspan="3">4. Documentation tooling</th></tr>
+    <tr><td class="pass">PASS</td><td>openscad-docsgen command</td><td>Published image exposes the source documentation generator.</td></tr>
+    <tr><td class="pass">PASS</td><td>openscad-mdimggen command</td><td>Published image exposes the Markdown image generator from the same package.</td></tr>
+    <tr><td class="pass">PASS</td><td>docsgen lint/parse</td><td>A real external OpenSCAD source passes docsgen test mode.</td></tr>
+    <tr><td class="pass">PASS</td><td>docsgen Markdown generation</td><td>The documented source produces non-empty Markdown containing the expected module.</td></tr>
+
+    <tr class="group-row"><th colspan="3">5. Library / interoperability</th></tr>
     <tr><td class="pass">PASS</td><td>OpenSCAD → BOSL2</td><td>Native OpenSCAD/BOSL2 route works.</td></tr>
     <tr><td class="pass">PASS</td><td>PythonSCAD → pybosl2</td><td>Python-native BOSL2 comparison route works.</td></tr>
     <tr><td class="xfail">XFAIL</td><td>PythonSCAD → BOSL2 .scad via osuse()</td><td>Known OpenSCAD version/runtime compatibility mismatch.</td></tr>
@@ -96,6 +106,7 @@ cat > "${SITE}/index.html" <<EOF
     <tr><th>PythonSCAD</th><td>${PYTHONSCAD_VERSION}</td></tr>
     <tr><th>Python</th><td>${PYTHON_VERSION}</td></tr>
     <tr><th>Git</th><td>${GIT_VERSION}</td></tr>
+    <tr><th>openscad_docsgen</th><td>${DOCSGEN_VERSION}</td></tr>
     <tr><th>BOSL2</th><td>v${BOSL2_VERSION_INFO}</td></tr>
     <tr><th>pybosl2</th><td>${PYBOSL2_VERSION_INFO}</td></tr>
   </table>
@@ -119,7 +130,23 @@ cat > "${SITE}/index.html" <<EOF
     rather than geometry comparisons.
   </p>
 
-  <h2>4. Library / interoperability</h2>
+  <h2>4. Documentation tooling</h2>
+  <p>
+    The suite consumes <code>openscad-docsgen</code> from the published image
+    using a separate repository source file. It first runs test mode as a
+    lint-like parse check and then generates real Markdown.
+  </p>
+  <p>
+    <a href="docsgen/docsgen.scad.md">Generated docsgen Markdown</a>
+  </p>
+  <p>
+    <code>openscad-mdimggen</code> is also required as a public command because
+    it is part of the installed upstream documentation package. Its full
+    project-design rendering behavior is intentionally not conflated with this
+    source/API documentation smoke test.
+  </p>
+
+  <h2>5. Library / interoperability</h2>
 
   <h3>Supported BOSL2 routes</h3>
   <p>

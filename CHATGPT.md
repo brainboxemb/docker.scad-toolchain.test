@@ -37,7 +37,7 @@ A permanent test-suite release encodes the immutable toolchain version in its
 tag:
 
 ```text
-test-v0.2.0-toolchain-v0.2.0
+test-v0.3.0-toolchain-v0.3.0
 ```
 
 The workflow parses `v0.2.0` from that tag and tests the corresponding
@@ -76,6 +76,8 @@ pythonscad
 python3
 git
 scad-toolchain-info
+openscad-docsgen
+openscad-mdimggen
 ```
 
 Functional checks include PNG/STL generation, PythonSCAD command-line defines,
@@ -83,7 +85,7 @@ and a real temporary Git init/add/commit.
 
 ## BOSL2 comparison tests
 
-The v0.2 suite adds three real CAD consumer paths:
+The interoperability suite maintains three real CAD consumer paths:
 
 ```text
 1. OpenSCAD   -> BOSL2 .scad
@@ -173,6 +175,51 @@ A previous clamp-library experiment established that PythonSCAD currently does
 not transfer OpenSCAD `object()` values across the language boundary. Do not
 reinterpret a successful BOSL2 module test as proof that arbitrary object-based
 OpenSCAD APIs are interoperable.
+
+
+## OpenSCAD documentation consumer test
+
+Toolchain v0.3.0 introduces `openscad_docsgen`. The external suite must test the
+published package as a consumer rather than trusting the toolchain's internal
+build smoke test.
+
+Required public commands:
+
+```text
+openscad-docsgen
+openscad-mdimggen
+```
+
+Consumer source:
+
+```text
+test/docsgen/docsgen.scad
+```
+
+The source must follow upstream docsgen syntax and begin with a `File:` or
+`LibFile:` block before any `Module`, `Function`, `Constant`, etc.
+
+Maintain two functional checks:
+
+```text
+1. openscad-docsgen -m -T
+   -> parse/test/lint-like validation
+
+2. openscad-docsgen -m
+   -> real Markdown generation
+```
+
+The generated Markdown must be non-empty and contain the known documented
+module name. Keep the generated file under `out/docsgen/` so the source tree is
+not mutated by the test.
+
+Checking `openscad-mdimggen` command availability is sufficient for this
+capability step. Do not make the minimal API/source documentation test depend
+on our future project-specific `design.md` rendering architecture.
+
+The HTML report must expose the installed `openscad_docsgen` package version and
+link the generated Markdown evidence.
+
 
 ## Reports
 
@@ -321,7 +368,8 @@ Keep `scripts/run-tests.sh` ordered as:
 1. Toolchain / environment
 2. Base functionality
 3. Additional runtime tests
-4. Library / interoperability
+4. Documentation tooling
+5. Library / interoperability
 ```
 
 Within library/interoperability, keep the supported routes first and the
@@ -350,7 +398,8 @@ Test summary
 1. Toolchain / environment
 2. Base functionality
 3. Additional runtime tests
-4. Library / interoperability
+4. Documentation tooling
+5. Library / interoperability
 Raw outputs
 ```
 
