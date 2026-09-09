@@ -84,35 +84,49 @@ permanent verification record for an immutable toolchain release.
 Do not create the released test-suite tag before the automatically dispatched
 test of the matching immutable toolchain image is green.
 
-## Creating released test-suite tags from ChatGPT / connected GitHub
+## Released test-suite workflow
 
-If the connected GitHub interface does not expose a direct create-tag action,
-use the same one-shot GitHub Actions pattern as `docker.scad-toolchain`.
-
-For a released verification pair such as
-`test-v0.4.0-toolchain-v0.4.0`:
+Use the permanent workflow:
 
 ```text
-1. identify the exact test-suite main commit to release
-2. create a temporary one-shot workflow with contents: write
-3. create an annotated tag on that explicit commit SHA
-4. push the tag
-5. because a tag pushed with GITHUB_TOKEN does not trigger another workflow
-   automatically, explicitly workflow_dispatch test.yml on the new tag ref
-6. verify the dispatched run has GITHUB_REF_TYPE=tag
-7. verify the tag name resolves:
-   suite_version=test-v0.4.0-toolchain-v0.4.0
-   toolchain_version=v0.4.0
-8. require the complete test and Pages publish jobs to pass
-9. verify the permanent tag-named Pages report is present in the root index
-10. remove the temporary one-shot workflow immediately
+.github/workflows/release.yml
 ```
 
-Do not duplicate the consumer-test logic in the one-shot workflow. The normal
-`.github/workflows/test.yml` remains authoritative for resolving the tag,
-testing the immutable image and publishing the permanent report.
+Do not recreate temporary one-shot release workflows for normal test-suite
+releases.
 
-Never move or overwrite a released test-suite tag.
+The workflow requires:
+
+```text
+suite_version
+    e.g. v0.4.0
+
+toolchain_version
+    e.g. v0.4.0
+
+release_sha
+    exact already-verified test-suite commit SHA
+```
+
+It creates the immutable tag:
+
+```text
+test-<suite_version>-toolchain-<toolchain_version>
+```
+
+and explicitly dispatches the normal `test.yml` workflow on that tag.
+
+The explicit dispatch is required because a tag pushed with `GITHUB_TOKEN`
+does not itself trigger the normal tag-push workflow. The authoritative
+`test.yml` must then:
+
+- resolve the suite version from the tag;
+- resolve the immutable toolchain version from the tag;
+- run the complete external consumer suite;
+- publish the permanent tag-named Pages report;
+- rebuild the Pages root index.
+
+Never move or overwrite an existing released test-suite tag.
 
 ## Automatic producer trigger
 
