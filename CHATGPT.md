@@ -84,6 +84,36 @@ permanent verification record for an immutable toolchain release.
 Do not create the released test-suite tag before the automatically dispatched
 test of the matching immutable toolchain image is green.
 
+## Creating released test-suite tags from ChatGPT / connected GitHub
+
+If the connected GitHub interface does not expose a direct create-tag action,
+use the same one-shot GitHub Actions pattern as `docker.scad-toolchain`.
+
+For a released verification pair such as
+`test-v0.4.0-toolchain-v0.4.0`:
+
+```text
+1. identify the exact test-suite main commit to release
+2. create a temporary one-shot workflow with contents: write
+3. create an annotated tag on that explicit commit SHA
+4. push the tag
+5. because a tag pushed with GITHUB_TOKEN does not trigger another workflow
+   automatically, explicitly workflow_dispatch test.yml on the new tag ref
+6. verify the dispatched run has GITHUB_REF_TYPE=tag
+7. verify the tag name resolves:
+   suite_version=test-v0.4.0-toolchain-v0.4.0
+   toolchain_version=v0.4.0
+8. require the complete test and Pages publish jobs to pass
+9. verify the permanent tag-named Pages report is present in the root index
+10. remove the temporary one-shot workflow immediately
+```
+
+Do not duplicate the consumer-test logic in the one-shot workflow. The normal
+`.github/workflows/test.yml` remains authoritative for resolving the tag,
+testing the immutable image and publishing the permanent report.
+
+Never move or overwrite a released test-suite tag.
+
 ## Automatic producer trigger
 
 A successful `docker.scad-toolchain` published-image smoke test starts this
