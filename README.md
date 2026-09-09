@@ -341,10 +341,13 @@ For a new toolchain capability:
 6. let the toolchain tag build automatically dispatch this workflow against
    `v0.4.0`; this updates the mutable `/latest/` report and proves the
    published immutable image works;
-7. after that run is green, create the immutable test-suite tag
-   `test-v0.4.0-toolchain-v0.4.0`;
-8. let that tag run the suite again against `v0.4.0` and publish the permanent
-   Pages report under `/test-v0.4.0-toolchain-v0.4.0/`.
+7. after that run is green, start
+   `Actions -> Release SCAD toolchain test suite` and provide the suite
+   version, toolchain version and exact verified test-suite commit SHA;
+8. let the permanent release workflow create
+   `test-v0.4.0-toolchain-v0.4.0` and dispatch `test.yml` on that tag;
+9. require that tagged run to pass and publish the permanent Pages report under
+   `/test-v0.4.0-toolchain-v0.4.0/`.
 
 The release tag itself selects the encoded immutable toolchain version; `toolchain.env` can remain on
 `:edge` for normal development.
