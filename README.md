@@ -37,7 +37,7 @@ For this capability update the intended tag is:
 test-v0.4.0-toolchain-v0.4.0
 ```
 
-after toolchain v0.2.0 has actually been published and the suite is green.
+after toolchain v0.4.0 has actually been published and the suite is green.
 
 ### Development versus release resolution
 
@@ -318,9 +318,13 @@ For a new toolchain capability:
 3. let this repository's `main` test `:edge`;
 4. fix problems until the external consumer suite is green;
 5. publish the immutable toolchain tag, for example `v0.4.0`;
-6. optionally run this test workflow manually against `v0.2.0`;
-7. create the immutable test-suite tag, for example
-   `test-v0.4.0-toolchain-v0.4.0`.
+6. let the toolchain tag build automatically dispatch this workflow against
+   `v0.4.0`; this updates the mutable `/latest/` report and proves the
+   published immutable image works;
+7. after that run is green, create the immutable test-suite tag
+   `test-v0.4.0-toolchain-v0.4.0`;
+8. let that tag run the suite again against `v0.4.0` and publish the permanent
+   Pages report under `/test-v0.4.0-toolchain-v0.4.0/`.
 
 The release tag itself selects the encoded immutable toolchain version; `toolchain.env` can remain on
 `:edge` for normal development.
