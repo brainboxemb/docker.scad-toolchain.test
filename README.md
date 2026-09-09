@@ -23,6 +23,26 @@ This is intentional: during development the suite validates the mutable
 A released test-suite tag does **not** use `edge`. Its exact immutable
 toolchain version is derived from the tag name.
 
+## Release gate at a glance
+
+The release has three distinct verification states:
+
+```text
+:edge green
+    = release candidate verified
+
+:v0.4.0 green through automatic workflow_dispatch
+    = published immutable runtime verified
+    = updates mutable /latest/
+
+test-v0.4.0-toolchain-v0.4.0 green
+    = immutable runtime + immutable test-suite pair verified
+    = permanent Pages evidence published
+```
+
+The final state is the historical release record. Do not treat `/latest/` as a
+replacement for the permanent tag-named report.
+
 ## Release tags
 
 Test-suite and toolchain versions are independent. Immutable test releases use:

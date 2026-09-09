@@ -44,6 +44,46 @@ The workflow parses `v0.2.0` from that tag and tests the corresponding
 `:v0.2.0` image. Do not change `toolchain.env` to a not-yet-published release
 tag just to prepare a release.
 
+## Mandatory release procedure
+
+This repository is not only a development smoke-test consumer. It also owns the
+**immutable verification record** for released toolchain versions.
+
+For a release pair such as toolchain `v0.4.0` and test suite `v0.4.0`, the
+required order is:
+
+```text
+A. main tests :edge
+   -> suite_version=latest
+   -> PASS required before the toolchain is tagged
+
+B. docker.scad-toolchain is tagged v0.4.0
+   -> producer publishes image :v0.4.0
+   -> producer automatically workflow_dispatches this repository with:
+      toolchain_version=v0.4.0
+
+C. that workflow_dispatch run tests the immutable :v0.4.0 image
+   -> PASS required
+   -> report is written to mutable Pages /latest/
+
+D. only after C is green, tag this repository:
+   test-v0.4.0-toolchain-v0.4.0
+
+E. the test tag resolves toolchain_version=v0.4.0 from its own name
+   -> run the complete suite again
+   -> PASS required
+   -> publish permanent Pages directory:
+      /test-v0.4.0-toolchain-v0.4.0/
+   -> rebuild the root Pages index so the released evidence is listed
+```
+
+Do **not** substitute the `/latest/` result for the released test-suite tag.
+`/latest/` is mutable development/current evidence. A tag-named report is the
+permanent verification record for an immutable toolchain release.
+
+Do not create the released test-suite tag before the automatically dispatched
+test of the matching immutable toolchain image is green.
+
 ## Automatic producer trigger
 
 A successful `docker.scad-toolchain` published-image smoke test starts this
