@@ -44,6 +44,26 @@ The workflow parses `v0.2.0` from that tag and tests the corresponding
 `:v0.2.0` image. Do not change `toolchain.env` to a not-yet-published release
 tag just to prepare a release.
 
+## Automatic producer trigger
+
+A successful `docker.scad-toolchain` published-image smoke test starts this
+repository through `workflow_dispatch`.
+
+The producer passes the exact intended consumer target:
+
+```text
+toolchain main
+    -> toolchain_version=edge
+
+toolchain v* tag
+    -> toolchain_version=<same tag>
+```
+
+This removes the race where a test-repository push can start before a newly
+built `:edge` image is available. Keep normal push/manual execution as well;
+this repository remains independently runnable and validates only the published
+public interface.
+
 ## Toolchain image resolution
 
 Keep development and release behavior separate:
