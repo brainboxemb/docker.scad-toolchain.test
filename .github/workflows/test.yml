@@ -21,6 +21,7 @@ permissions:
 jobs:
   resolve:
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     outputs:
       image: ${{ steps.config.outputs.image }}
       version: ${{ steps.config.outputs.version }}
@@ -29,8 +30,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        timeout-minutes: 2
 
       - id: config
+        timeout-minutes: 2
         shell: bash
         env:
           OVERRIDE_VERSION: ${{ inputs.toolchain_version }}
@@ -75,6 +78,7 @@ jobs:
   test:
     needs: resolve
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     container:
       image: ${{ needs.resolve.outputs.container }}
       credentials:
@@ -83,11 +87,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        timeout-minutes: 2
 
       - name: Run external consumer tests
+        timeout-minutes: 5
         run: bash ./scripts/run-tests.sh
 
       - name: Build HTML report
+        timeout-minutes: 2
         env:
           TEST_SUITE_VERSION: ${{ needs.resolve.outputs.suite_version }}
           SCAD_TOOLCHAIN_IMAGE: ${{ needs.resolve.outputs.image }}
@@ -95,6 +102,7 @@ jobs:
         run: bash ./scripts/build-report.sh
 
       - name: Upload raw test output
+        timeout-minutes: 2
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -103,6 +111,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Upload report for publish job
+        timeout-minutes: 2
         if: success() && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
@@ -114,23 +123,27 @@ jobs:
     needs: [resolve, test]
     if: success() && github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     concurrency:
       group: pages-publish
       cancel-in-progress: false
 
     steps:
       - name: Checkout source branch
+        timeout-minutes: 2
         uses: actions/checkout@v4
         with:
           path: source
 
       - name: Download report
+        timeout-minutes: 2
         uses: actions/download-artifact@v4
         with:
           name: scad-toolchain-test-site
           path: report
 
       - name: Checkout gh-pages branch
+        timeout-minutes: 2
         uses: actions/checkout@v4
         with:
           ref: gh-pages
@@ -138,6 +151,7 @@ jobs:
         continue-on-error: true
 
       - name: Initialize Pages tree if needed
+        timeout-minutes: 2
         shell: bash
         run: |
           set -euo pipefail
@@ -147,6 +161,7 @@ jobs:
           fi
 
       - name: Update report directory
+        timeout-minutes: 2
         shell: bash
         run: |
           set -euo pipefail
@@ -156,12 +171,14 @@ jobs:
           cp -a report/. "${DEST}/"
 
       - name: Build root index
+        timeout-minutes: 2
         shell: bash
         run: |
           set -euo pipefail
           bash source/scripts/build-index.sh pages
 
       - name: Publish Pages branch
+        timeout-minutes: 5
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

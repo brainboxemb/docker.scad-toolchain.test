@@ -23,14 +23,17 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout main with full history
+        timeout-minutes: 2
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Validate release inputs
+        timeout-minutes: 2
         env:
           SUITE_VERSION: ${{ inputs.suite_version }}
           TOOLCHAIN_VERSION: ${{ inputs.toolchain_version }}
@@ -60,6 +63,7 @@ jobs:
           fi
 
       - name: Create annotated verification tag
+        timeout-minutes: 2
         env:
           SUITE_VERSION: ${{ inputs.suite_version }}
           TOOLCHAIN_VERSION: ${{ inputs.toolchain_version }}
@@ -75,6 +79,7 @@ jobs:
           git push origin "refs/tags/${RELEASE_TAG}"
 
       - name: Dispatch authoritative test workflow on release tag
+        timeout-minutes: 2
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SUITE_VERSION: ${{ inputs.suite_version }}
