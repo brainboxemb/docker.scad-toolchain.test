@@ -14,6 +14,7 @@ PYTHONSCAD_VERSION="$(pythonscad --version 2>&1 | head -n1)"
 PYTHON_VERSION="$(python3 --version 2>&1 | head -n1)"
 GIT_VERSION="$(git --version 2>&1 | head -n1)"
 DOCSGEN_VERSION="$(python3 -c 'import importlib.metadata as m; print(m.version("openscad_docsgen"))')"
+PILLOW_VERSION_INFO="$(python3 -c 'import importlib.metadata as m; print(m.version("Pillow"))')"
 BOSL2_VERSION_INFO="${BOSL2_VERSION:-unknown}"
 PYBOSL2_VERSION_INFO="${PYBOSL2_VERSION:-unknown}"
 
@@ -22,10 +23,11 @@ mkdir -p \
   "${SITE}/openscad" \
   "${SITE}/pythonscad" \
   "${SITE}/docsgen" \
+  "${SITE}/watermark" \
   "${SITE}/bosl2-openscad" \
   "${SITE}/bosl2-pythonscad-py"
 
-for dir in openscad pythonscad bosl2-openscad bosl2-pythonscad-py; do
+for dir in openscad pythonscad watermark bosl2-openscad bosl2-pythonscad-py; do
   cp -f "${OUT}/${dir}/"*.png "${SITE}/${dir}/" 2>/dev/null || true
   cp -f "${OUT}/${dir}/"*.stl "${SITE}/${dir}/" 2>/dev/null || true
 done
@@ -73,6 +75,7 @@ cat > "${SITE}/index.html" <<EOF
 
     <tr class="group-row"><th colspan="3">2. Base functionality</th></tr>
     <tr><td class="pass">PASS</td><td>OpenSCAD PNG/STL</td><td>Basic OpenSCAD render and export work.</td></tr>
+    <tr><td class="pass">PASS</td><td>Image watermark</td><td>The published image can post-process a rendered PNG through scad-image-watermark.</td></tr>
     <tr><td class="pass">PASS</td><td>PythonSCAD PNG/STL</td><td>Basic PythonSCAD render and export work.</td></tr>
 
     <tr class="group-row"><th colspan="3">3. Additional runtime tests</th></tr>
@@ -107,6 +110,7 @@ cat > "${SITE}/index.html" <<EOF
     <tr><th>Python</th><td>${PYTHON_VERSION}</td></tr>
     <tr><th>Git</th><td>${GIT_VERSION}</td></tr>
     <tr><th>openscad_docsgen</th><td>${DOCSGEN_VERSION}</td></tr>
+    <tr><th>Pillow</th><td>${PILLOW_VERSION_INFO}</td></tr>
     <tr><th>BOSL2</th><td>v${BOSL2_VERSION_INFO}</td></tr>
     <tr><th>pybosl2</th><td>${PYBOSL2_VERSION_INFO}</td></tr>
   </table>
@@ -122,6 +126,13 @@ cat > "${SITE}/index.html" <<EOF
       <img src="pythonscad/smoke.png" alt="PythonSCAD smoke render">
     </div>
   </div>
+
+  <h3>Image watermark</h3>
+  <p>
+    The OpenSCAD smoke render is passed through the public
+    <code>scad-image-watermark</code> command.
+  </p>
+  <img src="watermark/openscad-smoke-watermarked.png" alt="Watermarked OpenSCAD smoke render">
 
   <h2>3. Additional runtime tests</h2>
   <p>
