@@ -9,6 +9,7 @@ mkdir -p \
   "${OUT}/openscad" \
   "${OUT}/pythonscad" \
   "${OUT}/docsgen" \
+  "${OUT}/watermark" \
   "${OUT}/bosl2-openscad" \
   "${OUT}/bosl2-pythonscad-scad" \
   "${OUT}/pythonscad-openscad-object" \
@@ -94,6 +95,7 @@ command -v python3
 command -v git
 command -v openscad-docsgen
 command -v openscad-mdimggen
+command -v scad-image-watermark
 
 echo
 echo "== Environment library paths =="
@@ -128,6 +130,30 @@ run_checked "OpenSCAD PNG" \
     -o "${OUT}/openscad/smoke.png" \
     "${ROOT}/test/openscad/smoke.scad"
 test -s "${OUT}/openscad/smoke.png"
+
+run_checked "Image watermark" \
+  scad-image-watermark \
+    "${OUT}/openscad/smoke.png" \
+    "${OUT}/watermark/openscad-smoke-watermarked.png" \
+    --text "© 2026 brainboxemb"
+
+test -s "${OUT}/watermark/openscad-smoke-watermarked.png"
+if cmp -s "${OUT}/openscad/smoke.png" "${OUT}/watermark/openscad-smoke-watermarked.png"; then
+  echo "ERROR: watermark output is identical to its input." >&2
+  exit 1
+fi
+
+python3 - "${OUT}/watermark/openscad-smoke-watermarked.png" <<'PY'
+from pathlib import Path
+import sys
+from PIL import Image
+
+path = Path(sys.argv[1])
+with Image.open(path) as image:
+    assert image.format == "PNG"
+    assert image.size == (800, 600)
+print("External watermark consumer output validated")
+PY
 
 run_checked "OpenSCAD STL" \
   openscad \
