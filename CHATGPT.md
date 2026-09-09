@@ -78,10 +78,32 @@ git
 scad-toolchain-info
 openscad-docsgen
 openscad-mdimggen
+scad-image-watermark
 ```
 
-Functional checks include PNG/STL generation, PythonSCAD command-line defines,
-and a real temporary Git init/add/commit.
+Functional checks include PNG/STL generation, lightweight PNG watermark
+post-processing, PythonSCAD command-line defines, and a real temporary Git
+init/add/commit.
+
+## Image watermark consumer test
+
+Toolchain v0.4 adds `scad-image-watermark`. Treat it as a public consumer
+capability, not an implementation detail.
+
+The maintained test route is:
+
+```text
+OpenSCAD smoke source
+    -> PNG
+    -> scad-image-watermark
+    -> second valid PNG with identical dimensions
+```
+
+Require the output to be non-empty and different from the input. Keep the
+watermarked PNG in generated `out/` and expose it in the verification report.
+
+Do not import or call the watermark implementation script directly from this
+repository; the public CLI is the contract being tested.
 
 ## BOSL2 comparison tests
 
