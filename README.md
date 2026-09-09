@@ -18,7 +18,7 @@ SCAD_TOOLCHAIN_VERSION=edge
 ```
 
 This is intentional: during development the suite validates the mutable
-`:edge` image before `v0.3.0` is published.
+`:edge` image before `v0.4.0` is published.
 
 A released test-suite tag does **not** use `edge`. Its exact immutable
 toolchain version is derived from the tag name.
@@ -34,7 +34,7 @@ test-v<test-suite-version>-toolchain-v<toolchain-version>
 For this capability update the intended tag is:
 
 ```text
-test-v0.3.0-toolchain-v0.3.0
+test-v0.4.0-toolchain-v0.4.0
 ```
 
 after toolchain v0.2.0 has actually been published and the suite is green.
@@ -52,8 +52,8 @@ workflow_dispatch
     -> optional explicit override
     -> for example :edge or :v0.3.0
 
-tag test-v0.3.0-toolchain-v0.3.0
-    -> automatically :v0.2.0
+tag test-v0.4.0-toolchain-v0.4.0
+    -> automatically :v0.4.0
 ```
 
 This avoids editing `toolchain.env` back and forth during the release process
@@ -78,6 +78,22 @@ The suite verifies:
 - PythonSCAD `-D` define injection
 - functional Git init/add/commit
 
+
+## PNG watermark tooling
+
+The v0.4 suite verifies the lightweight image-processing capability exposed by
+the published image:
+
+```text
+scad-image-watermark
+```
+
+The external test first produces a normal OpenSCAD PNG and then calls the
+public watermark command with copyright text. It checks that the resulting PNG
+is valid, keeps the original dimensions and is not byte-identical to the input.
+
+The generated Pages report includes the watermarked render as consumer
+evidence.
 
 ## OpenSCAD documentation tooling
 
@@ -301,12 +317,12 @@ For a new toolchain capability:
 2. let toolchain `main` publish/update `:edge`;
 3. let this repository's `main` test `:edge`;
 4. fix problems until the external consumer suite is green;
-5. publish the immutable toolchain tag, for example `v0.2.0`;
+5. publish the immutable toolchain tag, for example `v0.4.0`;
 6. optionally run this test workflow manually against `v0.2.0`;
 7. create the immutable test-suite tag, for example
-   `test-v0.3.0-toolchain-v0.3.0`.
+   `test-v0.4.0-toolchain-v0.4.0`.
 
-The release tag itself selects `:v0.2.0`; `toolchain.env` can remain on
+The release tag itself selects the encoded immutable toolchain version; `toolchain.env` can remain on
 `:edge` for normal development.
 
 A failed interoperability test is useful evidence. Do not mask it merely to make
