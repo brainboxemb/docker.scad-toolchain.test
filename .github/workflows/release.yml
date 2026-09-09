@@ -1,0 +1,92 @@
+name: Release SCAD toolchain test suite
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite_version:
+        description: 'Test-suite version, e.g. v0.4.0'
+        required: true
+        type: string
+      toolchain_version:
+        description: 'Immutable toolchain version, e.g. v0.4.0'
+        required: true
+        type: string
+      release_sha:
+        description: 'Exact already-verified test-suite commit SHA to tag'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout main with full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate release inputs
+        env:
+          SUITE_VERSION: ${{ inputs.suite_version }}
+          TOOLCHAIN_VERSION: ${{ inputs.toolchain_version }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+        run: |
+          set -euo pipefail
+
+          for value in "${SUITE_VERSION}" "${TOOLCHAIN_VERSION}"; do
+            if [[ ! "${value}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "ERROR: versions must match vX.Y.Z" >&2
+              exit 1
+            fi
+          done
+
+          RELEASE_TAG="test-${SUITE_VERSION}-toolchain-${TOOLCHAIN_VERSION}"
+
+          git fetch --tags --force origin
+
+          if ! git cat-file -e "${RELEASE_SHA}^{commit}" 2>/dev/null; then
+            echo "ERROR: release_sha is not a known commit: ${RELEASE_SHA}" >&2
+            exit 1
+          fi
+
+          if git rev-parse -q --verify "refs/tags/${RELEASE_TAG}" >/dev/null; then
+            echo "ERROR: release tag already exists: ${RELEASE_TAG}" >&2
+            exit 1
+          fi
+
+      - name: Create annotated verification tag
+        env:
+          SUITE_VERSION: ${{ inputs.suite_version }}
+          TOOLCHAIN_VERSION: ${{ inputs.toolchain_version }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+        run: |
+          set -euo pipefail
+
+          RELEASE_TAG="test-${SUITE_VERSION}-toolchain-${TOOLCHAIN_VERSION}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${RELEASE_TAG}" "${RELEASE_SHA}"             -m "SCAD toolchain test suite ${SUITE_VERSION} for toolchain ${TOOLCHAIN_VERSION}"
+          git push origin "refs/tags/${RELEASE_TAG}"
+
+      - name: Dispatch authoritative test workflow on release tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SUITE_VERSION: ${{ inputs.suite_version }}
+          TOOLCHAIN_VERSION: ${{ inputs.toolchain_version }}
+        run: |
+          set -euo pipefail
+
+          RELEASE_TAG="test-${SUITE_VERSION}-toolchain-${TOOLCHAIN_VERSION}"
+
+          gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/test.yml/dispatches" \
+            -f ref="${RELEASE_TAG}"
+
+          echo "Dispatched test.yml on ${RELEASE_TAG}."
