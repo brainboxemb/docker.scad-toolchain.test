@@ -71,7 +71,9 @@ The suite verifies:
 - `scad-toolchain-info`
 - `openscad-docsgen`
 - `openscad-mdimggen`
+- `scad-image-watermark`
 - OpenSCAD PNG/STL
+- PNG watermark post-processing
 - PythonSCAD PNG/STL
 - PythonSCAD `-D` define injection
 - functional Git init/add/commit
