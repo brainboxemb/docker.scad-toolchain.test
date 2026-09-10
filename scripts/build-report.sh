@@ -13,6 +13,7 @@ OPENSCAD_VERSION="$(openscad --version 2>&1 | head -n1)"
 PYTHONSCAD_VERSION="$(pythonscad --version 2>&1 | head -n1)"
 PYTHON_VERSION="$(python3 --version 2>&1 | head -n1)"
 GIT_VERSION="$(git --version 2>&1 | head -n1)"
+SCONS_VERSION_INFO="$(python3 -c 'import SCons; print(SCons.__version__)')"
 DOCSGEN_VERSION="$(python3 -c 'import importlib.metadata as m; print(m.version("openscad_docsgen"))')"
 PILLOW_VERSION_INFO="$(python3 -c 'import importlib.metadata as m; print(m.version("Pillow"))')"
 BOSL2_VERSION_INFO="${BOSL2_VERSION:-unknown}"
@@ -22,12 +23,13 @@ rm -rf "${SITE}"
 mkdir -p \
   "${SITE}/openscad" \
   "${SITE}/pythonscad" \
+  "${SITE}/scons" \
   "${SITE}/docsgen" \
   "${SITE}/watermark" \
   "${SITE}/bosl2-openscad" \
   "${SITE}/bosl2-pythonscad-py"
 
-for dir in openscad pythonscad watermark bosl2-openscad bosl2-pythonscad-py; do
+for dir in openscad pythonscad scons watermark bosl2-openscad bosl2-pythonscad-py; do
   cp -f "${OUT}/${dir}/"*.png "${SITE}/${dir}/" 2>/dev/null || true
   cp -f "${OUT}/${dir}/"*.stl "${SITE}/${dir}/" 2>/dev/null || true
 done
@@ -69,7 +71,7 @@ cat > "${SITE}/index.html" <<EOF
 
     <tr class="group-row"><th colspan="3">1. Toolchain / environment</th></tr>
     <tr><td class="pass">PASS</td><td>Toolchain information</td><td>Toolchain metadata is available.</td></tr>
-    <tr><td class="pass">PASS</td><td>Public commands</td><td>OpenSCAD, PythonSCAD, Python, Git and documentation tooling are exposed.</td></tr>
+    <tr><td class="pass">PASS</td><td>Public commands</td><td>OpenSCAD, PythonSCAD, Python, Git, SCons and documentation tooling are exposed.</td></tr>
     <tr><td class="pass">PASS</td><td>Environment library paths</td><td>BOSL2 and Python package paths are present.</td></tr>
     <tr><td class="pass">PASS</td><td>Git functional smoke test</td><td>Git can initialize and create a commit.</td></tr>
 
@@ -79,6 +81,7 @@ cat > "${SITE}/index.html" <<EOF
     <tr><td class="pass">PASS</td><td>PythonSCAD PNG/STL</td><td>Basic PythonSCAD render and export work.</td></tr>
 
     <tr class="group-row"><th colspan="3">3. Additional runtime tests</th></tr>
+    <tr><td class="pass">PASS</td><td>SCons → OpenSCAD</td><td>SCons can drive OpenSCAD to produce a real STL output.</td></tr>
     <tr><td class="pass">PASS</td><td>PythonSCAD -D define injection</td><td>Command-line parameter injection works.</td></tr>
     <tr><td class="pass">PASS</td><td>PythonSCAD embedded sys.path probe</td><td>Embedded Python runtime path inspection works.</td></tr>
 
@@ -109,6 +112,7 @@ cat > "${SITE}/index.html" <<EOF
     <tr><th>PythonSCAD</th><td>${PYTHONSCAD_VERSION}</td></tr>
     <tr><th>Python</th><td>${PYTHON_VERSION}</td></tr>
     <tr><th>Git</th><td>${GIT_VERSION}</td></tr>
+    <tr><th>SCons</th><td>${SCONS_VERSION_INFO}</td></tr>
     <tr><th>openscad_docsgen</th><td>${DOCSGEN_VERSION}</td></tr>
     <tr><th>Pillow</th><td>${PILLOW_VERSION_INFO}</td></tr>
     <tr><th>BOSL2</th><td>v${BOSL2_VERSION_INFO}</td></tr>
@@ -136,10 +140,12 @@ cat > "${SITE}/index.html" <<EOF
 
   <h2>3. Additional runtime tests</h2>
   <p>
-    The suite also verifies PythonSCAD command-line define injection and records
-    the embedded Python <code>sys.path</code>. These are runtime diagnostics
-    rather than geometry comparisons.
+    The suite verifies that SCons can drive OpenSCAD to produce a real STL,
+    and also verifies PythonSCAD command-line define injection and records the
+    embedded Python <code>sys.path</code>. These are runtime diagnostics rather
+    than geometry comparisons.
   </p>
+  <p><a href="scons/smoke.stl">SCons → OpenSCAD smoke STL</a></p>
 
   <h2>4. Documentation tooling</h2>
   <p>
@@ -202,6 +208,7 @@ cat > "${SITE}/index.html" <<EOF
   <ul>
     <li><a href="openscad/smoke.stl">OpenSCAD smoke STL</a></li>
     <li><a href="pythonscad/smoke.stl">PythonSCAD smoke STL</a></li>
+    <li><a href="scons/smoke.stl">SCons → OpenSCAD smoke STL</a></li>
     <li><a href="bosl2-openscad/model.stl">OpenSCAD → BOSL2 STL</a></li>
     <li><a href="bosl2-pythonscad-py/model.stl">PythonSCAD → pybosl2 STL</a></li>
   </ul>
