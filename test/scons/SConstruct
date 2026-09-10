@@ -1,0 +1,15 @@
+import os
+
+from SCons.Script import ARGUMENTS, Default, Environment
+
+root = ARGUMENTS["ROOT"]
+out = ARGUMENTS["OUT"]
+
+env = Environment(ENV=os.environ.copy())
+target = env.Command(
+    os.path.join(out, "smoke.stl"),
+    os.path.join(root, "test", "openscad", "smoke.scad"),
+    "openscad -o $TARGET $SOURCE",
+)
+
+Default(target)

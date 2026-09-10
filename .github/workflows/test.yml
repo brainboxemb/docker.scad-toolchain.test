@@ -93,6 +93,10 @@ jobs:
         timeout-minutes: 5
         run: bash ./scripts/run-tests.sh
 
+      - name: Run SCons OpenSCAD consumer test
+        timeout-minutes: 2
+        run: bash ./scripts/test-scons.sh
+
       - name: Build HTML report
         timeout-minutes: 2
         env:
