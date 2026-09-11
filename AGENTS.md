@@ -1,494 +1,127 @@
-# ChatGPT project handoff — docker.scad-toolchain.test
+# Repository agent guidance
+
+Persistent guidance for automated coding agents working in
+`docker.scad-toolchain.test`.
 
 ## Purpose
 
 This repository is the external consumer-validation suite for the published
 `ghcr.io/brainboxemb/scad-toolchain` image.
 
-It is intentionally separate from `docker.scad-toolchain`.
+It deliberately remains separate from `docker.scad-toolchain`:
 
-The toolchain repository proves that an image can be built. This repository
-proves that a **published image can actually be consumed** through its public
-interface.
+```text
+docker.scad-toolchain
+    builds/publishes the runtime
+
+docker.scad-toolchain.test
+    consumes the published runtime
+    verifies the public interface
+    publishes evidence
+```
+
+## Sources of truth
+
+Use:
+
+```text
+toolchain.env                       default development image target
+release tag                         immutable suite/toolchain pairing
+scripts/run-tests.sh                execution order and test behavior
+scripts/build-report.sh             report structure
+.github/workflows/*.yml             trigger/publication lifecycle
+```
+
+Do not duplicate changing toolchain versions in this file.
 
 ## Version model
 
-The test-suite version and toolchain version are independent.
+The test-suite version and toolchain version are independent. Permanent release
+tags encode both and must never be moved or overwritten.
 
-Released tags use:
+Development normally tests the mutable `:edge` image. A released test tag must
+resolve and test the immutable toolchain version encoded in its own name; it
+must never silently follow `:edge`.
 
-```text
-test-v<test-suite-version>-toolchain-v<toolchain-version>
-```
+## Release discipline
 
-Never move or overwrite a released test tag.
+A mutable `/latest/` report is not the permanent verification record for a
+released toolchain.
 
-`toolchain.env` contains the exact default image/version tested by `main`.
-Manual workflow dispatch may temporarily override the toolchain version for
-development.
+Required order:
 
-During development, `main` deliberately targets:
+1. development suite passes against `:edge`;
+2. toolchain publishes an immutable release image;
+3. the producer-triggered run passes against that exact immutable image;
+4. only then create the matching immutable test-suite tag;
+5. the tag runs the complete suite again and publishes permanent tag-named
+   evidence.
 
-```text
-SCAD_TOOLCHAIN_VERSION=edge
-```
+Use `.github/workflows/release.yml`. Do not create temporary one-shot release
+workflows or overwrite released test tags.
 
-A permanent test-suite release encodes the immutable toolchain version in its
-tag:
+## Public interface coverage
 
-```text
-test-v0.3.0-toolchain-v0.3.0
-```
+Validate public commands and behavior as consumers actually use them, including
+representative PNG/STL generation, Git operations, docs tooling and PNG
+watermark post-processing.
 
-The workflow parses `v0.2.0` from that tag and tests the corresponding
-`:v0.2.0` image. Do not change `toolchain.env` to a not-yet-published release
-tag just to prepare a release.
+Do not test implementation-private scripts when a public command exists. For
+example, watermark verification must invoke `scad-image-watermark` rather than
+importing its implementation.
 
-## Mandatory release procedure
+A command existing is not enough when a practical consumer test is possible.
 
-This repository is not only a development smoke-test consumer. It also owns the
-**immutable verification record** for released toolchain versions.
+## BOSL2 / pybosl2 coverage
 
-For a release pair such as toolchain `v0.4.0` and test suite `v0.4.0`, the
-required order is:
-
-```text
-A. main tests :edge
-   -> suite_version=latest
-   -> PASS required before the toolchain is tagged
-
-B. docker.scad-toolchain is tagged v0.4.0
-   -> producer publishes image :v0.4.0
-   -> producer automatically workflow_dispatches this repository with:
-      toolchain_version=v0.4.0
-
-C. that workflow_dispatch run tests the immutable :v0.4.0 image
-   -> PASS required
-   -> report is written to mutable Pages /latest/
-
-D. only after C is green, tag this repository:
-   test-v0.4.0-toolchain-v0.4.0
-
-E. the test tag resolves toolchain_version=v0.4.0 from its own name
-   -> run the complete suite again
-   -> PASS required
-   -> publish permanent Pages directory:
-      /test-v0.4.0-toolchain-v0.4.0/
-   -> rebuild the root Pages index so the released evidence is listed
-```
-
-Do **not** substitute the `/latest/` result for the released test-suite tag.
-`/latest/` is mutable development/current evidence. A tag-named report is the
-permanent verification record for an immutable toolchain release.
-
-Do not create the released test-suite tag before the automatically dispatched
-test of the matching immutable toolchain image is green.
-
-## Released test-suite workflow
-
-Use the permanent workflow:
+Maintain the three distinct routes:
 
 ```text
-.github/workflows/release.yml
+OpenSCAD   -> BOSL2 SCAD      supported/native
+PythonSCAD -> pybosl2         supported comparison route
+PythonSCAD -> BOSL2 SCAD      compatibility probe / expected failure when documented
 ```
 
-Do not recreate temporary one-shot release workflows for normal test-suite
-releases.
+Use equivalent small geometry where practical so behavior is comparable.
 
-The workflow requires:
+For PythonSCAD `osuse()` use the explicit `BOSL2_ROOT/std.scad` path. Do not
+assume `OPENSCADPATH` resolution and do not load `shapes3d.scad` directly as the
+entrypoint.
 
-```text
-suite_version
-    e.g. v0.4.0
+PythonSCAD may require `/opt/python-libs` to be inserted explicitly into
+`sys.path` for toolchain-installed Python packages.
 
-toolchain_version
-    e.g. v0.4.0
+Never name a test script `pybosl2.py`; that would shadow the installed package.
 
-release_sha
-    exact already-verified test-suite commit SHA
-```
+## Compatibility XFAIL discipline
 
-It creates the immutable tag:
+Known compatibility limitations are active probes, not historical comments.
 
-```text
-test-<suite_version>-toolchain-<toolchain_version>
-```
+Examples include:
 
-and explicitly dispatches the normal `test.yml` workflow on that tag.
+- PythonSCAD -> BOSL2 SCAD runtime semantics;
+- PythonSCAD crossing an OpenSCAD `object()` boundary.
 
-The explicit dispatch is required because a tag pushed with `GITHUB_TOKEN`
-does not itself trigger the normal tag-push workflow. The authoritative
-`test.yml` must then:
+Do not add compatibility shims merely to make an expected-failure probe pass.
+An XFAIL is valid only when the expected failure marker/message is observed.
+Unexpected success or a different failure must fail the suite and trigger a
+review of the compatibility conclusion.
 
-- resolve the suite version from the tag;
-- resolve the immutable toolchain version from the tag;
-- run the complete external consumer suite;
-- publish the permanent tag-named Pages report;
-- rebuild the Pages root index.
+## Documentation tooling test
 
-Never move or overwrite an existing released test-suite tag.
+The external docsgen test must validate the published toolchain package as a
+consumer.
 
-## Automatic producer trigger
+Structured `.scad` test source begins with `File:` or `LibFile:` before API
+blocks. Maintain both parse/test validation and real Markdown generation. The
+generated Markdown must be non-empty and contain a known documented symbol.
 
-A successful `docker.scad-toolchain` published-image smoke test starts this
-repository through `workflow_dispatch`.
-
-The producer passes the exact intended consumer target:
-
-```text
-toolchain main
-    -> toolchain_version=edge
-
-toolchain v* tag
-    -> toolchain_version=<same tag>
-```
-
-This removes the race where a test-repository push can start before a newly
-built `:edge` image is available. Keep normal push/manual execution as well;
-this repository remains independently runnable and validates only the published
-public interface.
-
-## Toolchain image resolution
-
-Keep development and release behavior separate:
-
-```text
-main / pull request
-    -> toolchain.env
-    -> normally :edge
-
-workflow_dispatch
-    -> optional explicit version override
-
-test-vX-toolchain-vY tag
-    -> automatically :vY
-```
-
-This is important because the external consumer tests should run against
-`:edge` **before** a new immutable toolchain release exists.
-
-Once a test-suite release tag exists, it must never silently follow `:edge`.
-Its toolchain version is encoded in the tag and is immutable.
-
-## What must be tested
-
-Base public commands:
-
-```text
-openscad
-pythonscad
-python3
-git
-scad-toolchain-info
-openscad-docsgen
-openscad-mdimggen
-scad-image-watermark
-```
-
-Functional checks include PNG/STL generation, lightweight PNG watermark
-post-processing, PythonSCAD command-line defines, and a real temporary Git
-init/add/commit.
-
-## Image watermark consumer test
-
-Toolchain v0.4 adds `scad-image-watermark`. Treat it as a public consumer
-capability, not an implementation detail.
-
-The maintained test route is:
-
-```text
-OpenSCAD smoke source
-    -> PNG
-    -> scad-image-watermark
-    -> second valid PNG with identical dimensions
-```
-
-Require the output to be non-empty and different from the input. Keep the
-watermarked PNG in generated `out/` and expose it in the verification report.
-
-Do not import or call the watermark implementation script directly from this
-repository; the public CLI is the contract being tested.
-
-## BOSL2 comparison tests
-
-The interoperability suite maintains three real CAD consumer paths:
-
-```text
-1. OpenSCAD   -> BOSL2 .scad
-2. PythonSCAD -> BOSL2 .scad
-3. PythonSCAD -> pybosl2
-```
-
-Use the same small geometry in all three where practical. The current comparison
-shape is a rounded 30 × 20 × 10 cuboid.
-
-The goal is to answer technical questions such as:
-
-- does the installed BOSL2 resolve through `OPENSCADPATH`?
-- can PythonSCAD consume BOSL2 SCAD modules through `osuse()`/`osinclude()`?
-- can PythonSCAD import the installed pybosl2 package without a project-local
-  install?
-- can every route export both PNG and STL?
-
-Do not turn this repository into a large subjective API benchmark. Small
-technical comparison/probe tests belong here; a large design study can be split
-out later if needed.
-
-## BOSL2 SCAD path in PythonSCAD
-
-PythonSCAD `osuse()` does not use `OPENSCADPATH` to resolve a string such as:
-
-```text
-BOSL2/shapes3d.scad
-```
-
-The toolchain publishes `BOSL2_ROOT` for this purpose.
-
-The maintained test pattern is:
-
-```python
-import os
-from pathlib import Path
-
-bosl2_file = Path(os.environ["BOSL2_ROOT"]) / "std.scad"
-bosl2 = osuse(str(bosl2_file))
-```
-
-The suite should fail clearly if `BOSL2_ROOT` is missing or the expected SCAD
-file is absent. Do not replace this with a repository-local BOSL2 checkout.
-
-## PythonSCAD external package discovery
-
-The published toolchain installs shared external Python packages in:
-
-```text
-/opt/python-libs
-```
-
-PythonSCAD embeds CPython and currently does not reliably inherit the
-container's `PYTHONPATH`.
-
-Every PythonSCAD consumer test that imports a toolchain-installed pip package
-must therefore do:
-
-```python
-import sys
-sys.path.insert(0, "/opt/python-libs")
-```
-
-before importing that package.
-
-Keep `python_path_probe.py` as diagnostic evidence for the embedded runtime.
-Do not "fix" the test by installing pybosl2 inside the test repository.
-
-## Python import-shadowing rule
-
-Do not name the pybosl2 test itself `pybosl2.py`.
-
-Python places the source-file directory on its import path, so that filename
-would shadow the installed package and make `from pybosl2 import ...` import
-the test file itself.
-
-The maintained consumer-test filename is:
-
-```text
-test/pythonscad/pybosl2_consumer.py
-```
-
-## PythonSCAD/OpenSCAD object finding
-
-A previous clamp-library experiment established that PythonSCAD currently does
-not transfer OpenSCAD `object()` values across the language boundary. Do not
-reinterpret a successful BOSL2 module test as proof that arbitrary object-based
-OpenSCAD APIs are interoperable.
-
-
-## OpenSCAD documentation consumer test
-
-Toolchain v0.3.0 introduces `openscad_docsgen`. The external suite must test the
-published package as a consumer rather than trusting the toolchain's internal
-build smoke test.
-
-Required public commands:
-
-```text
-openscad-docsgen
-openscad-mdimggen
-```
-
-Consumer source:
-
-```text
-test/docsgen/docsgen.scad
-```
-
-The source must follow upstream docsgen syntax and begin with a `File:` or
-`LibFile:` block before any `Module`, `Function`, `Constant`, etc.
-
-Maintain two functional checks:
-
-```text
-1. openscad-docsgen -m -T
-   -> parse/test/lint-like validation
-
-2. openscad-docsgen -m
-   -> real Markdown generation
-```
-
-The generated Markdown must be non-empty and contain the known documented
-module name. Keep the generated file under `out/docsgen/` so the source tree is
-not mutated by the test.
-
-Checking `openscad-mdimggen` command availability is sufficient for this
-capability step. Do not make the minimal API/source documentation test depend
-on our future project-specific `design.md` rendering architecture.
-
-The HTML report must expose the installed `openscad_docsgen` package version and
-link the generated Markdown evidence.
-
-
-## Reports
-
-Successful runs build `site/` and publish it to the `gh-pages` branch.
-
-`main` publishes to:
-
-```text
-/latest/
-```
-
-released test tags publish to their permanent tag-named directory.
-
-Reports should expose both the pass/fail summary and the generated render
-evidence. Raw `out/` remains available as an Actions artifact for debugging.
-
-## Failure discipline
-
-Do not hide interoperability failures with test-only bridges unless the purpose
-of the test explicitly is to validate such a bridge.
-
-If one BOSL2 route fails, keep the failure visible and inspect the exact
-toolchain/library boundary. These tests exist specifically to discover those
-limitations.
-
-
-## BOSL2 library entrypoint
-
-Use `std.scad` as the BOSL2 entrypoint for PythonSCAD interoperability tests:
-
-```python
-import os
-from pathlib import Path
-
-bosl2_file = Path(os.environ["BOSL2_ROOT"]) / "std.scad"
-bosl2 = osuse(str(bosl2_file))
-```
-
-Do not directly `osuse()` `shapes3d.scad`. BOSL2 component files rely on the
-standard constants/dependencies loaded by `std.scad`.
-
-
-## Current PythonSCAD interoperability conclusion
-
-Two independent compatibility limitations have now been demonstrated.
-
-### 1. OpenSCAD `object()` boundary
-
-Modern OpenSCAD experimental `object()` values do not currently cross the
-OpenSCAD/PythonSCAD boundary as usable Python-side objects. Do not flatten or
-redesign public OpenSCAD object APIs merely to make them consumable by
-PythonSCAD.
-
-### 2. BOSL2 OpenSCAD-runtime boundary
-
-`PythonSCAD -> BOSL2 .scad` through `osuse()` is a maintained XFAIL.
-
-BOSL2 `std.scad` uses OpenSCAD's date-based `version_num()` compatibility check.
-PythonSCAD's SCAD runtime exposes PythonSCAD's own semantic-version value, so
-BOSL2 rejects the runtime.
-
-This is important beyond the individual assertion: BOSL2 relies strongly on
-OpenSCAD-specific runtime semantics, while PythonSCAD's interoperability layer
-does not reproduce all of those semantics identically despite being built on
-substantial OpenSCAD-derived infrastructure.
-
-Maintain these routes as:
-
-```text
-OpenSCAD   -> BOSL2       : supported/native
-PythonSCAD -> pybosl2     : supported comparison route
-PythonSCAD -> BOSL2 SCAD  : XFAIL compatibility probe
-```
-
-Do not hide these findings with compatibility shims that fake OpenSCAD version
-numbers or flatten object APIs.
-
-The XFAIL is valid only when the expected message is observed:
-
-```text
-BOSL2 requires OpenSCAD version 2021.01 or later.
-```
-
-If that route unexpectedly succeeds, or fails for another reason, the suite
-must fail and the compatibility conclusion must be reviewed.
-
-
-### Active OpenSCAD object XFAIL
-
-The OpenSCAD `object()` limitation is an active verification probe, not just a
-documented historical finding.
-
-Files:
-
-```text
-test/pythonscad/openscad_object/object_api.scad
-test/pythonscad/openscad_object/object_bridge_probe.py
-```
-
-Expected marker:
-
-```text
-PYTHONSCAD_OPENSCAD_OBJECT_XFAIL
-```
-
-Do not add scalar bridge wrappers or fake object representations to make the
-probe pass. Unexpected success means PythonSCAD interoperability has improved
-and the test/report status must be updated.
-
-The report order is intentionally:
-
-```text
-1. PASS/XFAIL summary
-2. interoperability findings
-3. supported geometry renders
-4. smoke renders
-5. environment / raw outputs
-```
-
-
-### PythonSCAD script-file path rule
-
-For the object XFAIL probe, `run-tests.sh` provides the absolute SCAD library
-path through:
-
-```text
-OPENSCAD_OBJECT_PROBE_SCAD
-```
-
-The PythonSCAD script must load that file directly with:
-
-```python
-library = osuse(os.environ["OPENSCAD_OBJECT_PROBE_SCAD"])
-```
-
-Do not obscure the interoperability test with separate path-management logic.
-The environment variable supplies only the location; `osuse()` remains the
-actual PythonSCAD/OpenSCAD-library boundary.
-
+Keep generated evidence under output directories; do not mutate test source
+folders.
 
 ## Test execution order
 
-Keep `scripts/run-tests.sh` ordered as:
+Keep `scripts/run-tests.sh` grouped as:
 
 ```text
 1. Toolchain / environment
@@ -498,36 +131,23 @@ Keep `scripts/run-tests.sh` ordered as:
 5. Library / interoperability
 ```
 
-Within library/interoperability, keep the supported routes first and the
-expected incompatibilities last:
+Within interoperability, run supported routes before expected incompatibilities.
+Keep `scripts/build-report.sh` structurally aligned with this order so Actions
+logs and published evidence tell the same story.
 
-```text
-OpenSCAD -> BOSL2
-PythonSCAD -> pybosl2
-XFAIL PythonSCAD -> BOSL2 .scad
-XFAIL PythonSCAD -> OpenSCAD object()
-```
+## Reports
 
-This mirrors the dependency chain and keeps GitHub Actions logs readable during
-debugging.
+Successful runs publish generated evidence to Pages:
 
+- mutable current/development evidence under `/latest/`;
+- immutable released evidence under the release tag name.
 
-## Verification report order
+The report should show PASS/XFAIL summary first, then detailed evidence, then raw
+outputs/environment diagnostics. Raw generated files should also remain
+available as Actions artifacts for debugging.
 
-Keep `scripts/build-report.sh` structurally synchronized with
-`scripts/run-tests.sh`.
+## Failure discipline
 
-The HTML report should use:
-
-```text
-Test summary
-1. Toolchain / environment
-2. Base functionality
-3. Additional runtime tests
-4. Documentation tooling
-5. Library / interoperability
-Raw outputs
-```
-
-The summary table belongs at the top and must show both PASS and XFAIL routes
-immediately, even though detailed interoperability content appears in section 4.
+Do not hide an interoperability failure with test-only bridges unless the test
+explicitly exists to validate such a bridge. This repository is intended to
+surface real runtime boundaries clearly.
