@@ -90,8 +90,12 @@ cat > "${SITE}/index.html" <<EOF
 
   <h2>Distribution measurements</h2>
   <p>
-    Pull time is measured on one fresh hosted runner. Compressed bytes are the
-    linux/amd64 OCI layer sizes; unpacked bytes are reported by Docker after pull.
+    Exact compressed bytes are the linux/amd64 OCI layer sizes and unpacked
+    bytes are reported by Docker after pull. Routine qualification keeps the
+    OpenSCAD image layers locally available before pulling the full superset,
+    so the raw metric explicitly identifies whether pull time is fresh-runner
+    or shared-layer reuse. Independent cold-pull benchmarking is kept out of
+    routine CI to avoid deliberately deleting and redownloading shared data.
   </p>
   <pre>${METRICS}</pre>
   <p><a href="image-metrics.txt">Raw image metrics</a></p>
