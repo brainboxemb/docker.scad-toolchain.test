@@ -78,44 +78,34 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull and measure both runtime images
+      - name: Cold-pull and measure OpenSCAD runtime
         timeout-minutes: 5
         shell: bash
         env:
-          OPENSCAD_CONTAINER: ${{ steps.config.outputs.openscad_container }}
-          FULL_CONTAINER: ${{ steps.config.outputs.full_container }}
+          CONTAINER: ${{ steps.config.outputs.openscad_container }}
         run: |
           set -euo pipefail
           mkdir -p out
           : > out/image-metrics.txt
 
-          measure_image() {
-            local profile="$1"
-            local image="$2"
-            local start end elapsed unpacked raw media digest compressed
+          start="$(date +%s%3N)"
+          docker pull "$CONTAINER"
+          end="$(date +%s%3N)"
+          elapsed=$((end - start))
+          unpacked="$(docker image inspect --format='{{.Size}}' "$CONTAINER")"
 
-            start="$(date +%s%3N)"
-            docker pull "$image"
-            end="$(date +%s%3N)"
-            elapsed=$((end - start))
-            unpacked="$(docker image inspect --format='{{.Size}}' "$image")"
+          raw="$(docker buildx imagetools inspect --raw "$CONTAINER")"
+          media="$(printf '%s' "$raw" | jq -r '.mediaType // empty')"
+          if [[ "$media" == *image.index* || "$media" == *manifest.list* ]]; then
+            digest="$(printf '%s' "$raw" | jq -r '.manifests[] | select(.platform.os == "linux" and .platform.architecture == "amd64") | .digest' | head -n1)"
+            test -n "$digest"
+            raw="$(docker buildx imagetools inspect --raw "${CONTAINER%@*}@${digest}")"
+          fi
+          compressed="$(printf '%s' "$raw" | jq '[.layers[].size] | add')"
 
-            raw="$(docker buildx imagetools inspect --raw "$image")"
-            media="$(printf '%s' "$raw" | jq -r '.mediaType // empty')"
-            if [[ "$media" == *image.index* || "$media" == *manifest.list* ]]; then
-              digest="$(printf '%s' "$raw" | jq -r '.manifests[] | select(.platform.os == "linux" and .platform.architecture == "amd64") | .digest' | head -n1)"
-              test -n "$digest"
-              raw="$(docker buildx imagetools inspect --raw "${image%@*}@${digest}")"
-            fi
-            compressed="$(printf '%s' "$raw" | jq '[.layers[].size] | add')"
-
-            printf '%s image=%s pull_ms=%s compressed_bytes=%s unpacked_bytes=%s\n' \
-              "$profile" "$image" "$elapsed" "$compressed" "$unpacked" \
-              | tee -a out/image-metrics.txt
-          }
-
-          measure_image openscad "$OPENSCAD_CONTAINER"
-          measure_image full "$FULL_CONTAINER"
+          printf 'openscad image=%s pull_ms=%s compressed_bytes=%s unpacked_bytes=%s\n' \
+            "$CONTAINER" "$elapsed" "$compressed" "$unpacked" \
+            | tee -a out/image-metrics.txt
 
       - name: Test OpenSCAD runtime contract
         timeout-minutes: 5
@@ -130,6 +120,43 @@ jobs:
             -e SCAD_TOOLCHAIN_TEST_OUT=/work/out/openscad-profile \
             "$CONTAINER" \
             bash ./scripts/run-tests.sh
+
+      - name: Reset Docker state before full-runtime cold pull
+        timeout-minutes: 2
+        shell: bash
+        env:
+          CONTAINER: ${{ steps.config.outputs.openscad_container }}
+        run: |
+          set -euo pipefail
+          docker image rm -f "$CONTAINER"
+          docker system prune -af
+
+      - name: Cold-pull and measure full runtime
+        timeout-minutes: 5
+        shell: bash
+        env:
+          CONTAINER: ${{ steps.config.outputs.full_container }}
+        run: |
+          set -euo pipefail
+
+          start="$(date +%s%3N)"
+          docker pull "$CONTAINER"
+          end="$(date +%s%3N)"
+          elapsed=$((end - start))
+          unpacked="$(docker image inspect --format='{{.Size}}' "$CONTAINER")"
+
+          raw="$(docker buildx imagetools inspect --raw "$CONTAINER")"
+          media="$(printf '%s' "$raw" | jq -r '.mediaType // empty')"
+          if [[ "$media" == *image.index* || "$media" == *manifest.list* ]]; then
+            digest="$(printf '%s' "$raw" | jq -r '.manifests[] | select(.platform.os == "linux" and .platform.architecture == "amd64") | .digest' | head -n1)"
+            test -n "$digest"
+            raw="$(docker buildx imagetools inspect --raw "${CONTAINER%@*}@${digest}")"
+          fi
+          compressed="$(printf '%s' "$raw" | jq '[.layers[].size] | add')"
+
+          printf 'full image=%s pull_ms=%s compressed_bytes=%s unpacked_bytes=%s\n' \
+            "$CONTAINER" "$elapsed" "$compressed" "$unpacked" \
+            | tee -a out/image-metrics.txt
 
       - name: Test full runtime contract
         timeout-minutes: 5
