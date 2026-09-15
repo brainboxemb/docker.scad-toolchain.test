@@ -78,7 +78,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Cold-pull and measure OpenSCAD runtime
+      - name: Pull and measure OpenSCAD runtime
         timeout-minutes: 5
         shell: bash
         env:
@@ -103,7 +103,7 @@ jobs:
           fi
           compressed="$(printf '%s' "$raw" | jq '[.layers[].size] | add')"
 
-          printf 'openscad image=%s pull_ms=%s compressed_bytes=%s unpacked_bytes=%s\n' \
+          printf 'openscad pull_mode=fresh-runner image=%s pull_ms=%s compressed_bytes=%s unpacked_bytes=%s\n' \
             "$CONTAINER" "$elapsed" "$compressed" "$unpacked" \
             | tee -a out/image-metrics.txt
 
@@ -121,17 +121,7 @@ jobs:
             "$CONTAINER" \
             bash ./scripts/run-tests.sh
 
-      - name: Reset Docker state before full-runtime cold pull
-        timeout-minutes: 2
-        shell: bash
-        env:
-          CONTAINER: ${{ steps.config.outputs.openscad_container }}
-        run: |
-          set -euo pipefail
-          docker image rm -f "$CONTAINER"
-          docker system prune -af
-
-      - name: Cold-pull and measure full runtime
+      - name: Pull and measure full runtime with shared layers retained
         timeout-minutes: 5
         shell: bash
         env:
@@ -154,7 +144,7 @@ jobs:
           fi
           compressed="$(printf '%s' "$raw" | jq '[.layers[].size] | add')"
 
-          printf 'full image=%s pull_ms=%s compressed_bytes=%s unpacked_bytes=%s\n' \
+          printf 'full pull_mode=shared-layer-reuse image=%s pull_ms=%s compressed_bytes=%s unpacked_bytes=%s\n' \
             "$CONTAINER" "$elapsed" "$compressed" "$unpacked" \
             | tee -a out/image-metrics.txt
 
