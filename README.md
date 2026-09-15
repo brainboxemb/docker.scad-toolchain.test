@@ -2,186 +2,175 @@
 
 > **Test results:** https://brainboxemb.github.io/docker.scad-toolchain.test/
 
-External consumer-validation suite for
-`ghcr.io/brainboxemb/scad-toolchain`.
+External consumer-validation suite for the published SCAD runtime image family:
 
-This repository intentionally tests a **published** toolchain image rather than
-repeating the image's internal build checks.
+```text
+ghcr.io/brainboxemb/scad-toolchain-openscad
+ghcr.io/brainboxemb/scad-toolchain
+```
+
+This repository tests published images rather than repeating their internal
+Docker build checks.
+
+## Runtime matrix
+
+The suite treats the full image as a superset of the OpenSCAD-focused image.
+
+Shared contract, tested against both profiles:
+
+- `openscad`;
+- Python 3;
+- Git;
+- SCons;
+- `scad-toolchain-info` and profile identity;
+- OpenSCAD PNG/STL generation;
+- OpenSCAD -> BOSL2;
+- `openscad-docsgen` / `openscad-mdimggen`;
+- `scad-image-watermark` / Pillow;
+- generic published-runtime filesystem/environment expectations.
+
+Additional full-runtime contract:
+
+- `pythonscad` PNG/STL;
+- PythonSCAD `-D` define injection;
+- embedded Python path probe;
+- PythonSCAD -> pybosl2;
+- documented interoperability XFAIL probes.
+
+A missing PythonSCAD command in the OpenSCAD profile is expected, not a test
+failure.
 
 ## Current development target
 
-`main` tests the latest published development image:
+During Migration 005 pre-release qualification the branch pins exact candidate
+images:
 
 ```text
-SCAD_TOOLCHAIN_IMAGE=ghcr.io/brainboxemb/scad-toolchain
-SCAD_TOOLCHAIN_VERSION=edge
+SCAD_TOOLCHAIN_OPENSCAD_IMAGE=ghcr.io/brainboxemb/scad-toolchain-openscad
+SCAD_TOOLCHAIN_FULL_IMAGE=ghcr.io/brainboxemb/scad-toolchain
+SCAD_TOOLCHAIN_VERSION=sha-eeb40e7
 ```
 
-This is intentional: during development the suite validates the mutable
-`:edge` image before `v0.4.0` is published.
+The exact SHA tag is intentional until the immutable `v0.5.0` runtime exists.
+After release, normal development can move to the selected released/development
+version without changing release-tag resolution.
 
-A released test-suite tag does **not** use `edge`. Its exact immutable
-toolchain version is derived from the tag name.
+A released test-suite tag never relies on a mutable candidate tag. The encoded
+immutable toolchain version in the test tag wins.
 
 ## Release gate at a glance
 
-The release has three distinct verification states:
+For the v0.5.0 image-family release:
 
 ```text
-:edge green
-    = release candidate verified
+qualified sha-* candidate green
+    = pre-release architecture/runtime candidate verified
 
-:v0.4.0 green through automatic workflow_dispatch
-    = published immutable runtime verified
+:v0.5.0 green through automatic workflow_dispatch
+    = published immutable OpenSCAD + full runtime pair verified
     = updates mutable /latest/
 
-test-v0.4.0-toolchain-v0.4.0 green
-    = immutable runtime + immutable test-suite pair verified
+test-v0.5.0-toolchain-v0.5.0 green
+    = immutable runtime pair + immutable test-suite revision verified
     = permanent Pages evidence published
 ```
 
-The final state is the historical release record. Do not treat `/latest/` as a
-replacement for the permanent tag-named report.
+The final tagged state is the historical release record. `/latest/` is useful
+for current status but is not a replacement for the permanent tag-named report.
 
-## Release tags
+## Version resolution
 
-Test-suite and toolchain versions are independent. Immutable test releases use:
+Immutable test releases use:
 
 ```text
 test-v<test-suite-version>-toolchain-v<toolchain-version>
 ```
 
-For this capability update the intended tag is:
+For Migration 005 the intended record is:
 
 ```text
-test-v0.4.0-toolchain-v0.4.0
+test-v0.5.0-toolchain-v0.5.0
 ```
 
-after toolchain v0.4.0 has actually been published and the suite is green.
-
-### Development versus release resolution
-
-The workflow resolves the image version as follows:
+The workflow resolves runtime versions as follows:
 
 ```text
 main / pull request
     -> version from toolchain.env
-    -> normally :edge
 
 workflow_dispatch
     -> optional explicit override
-    -> for example :edge or :v0.3.0
+    -> for example edge, sha-eeb40e7 or v0.5.0
 
-tag test-v0.4.0-toolchain-v0.4.0
-    -> automatically :v0.4.0
+tag test-v0.5.0-toolchain-v0.5.0
+    -> automatically v0.5.0
 ```
 
-This avoids editing `toolchain.env` back and forth during the release process
-while still guaranteeing that released test reports use an immutable toolchain
-tag.
+Both runtime package names receive the same resolved version.
 
-## Base tests
+## Distribution measurements
 
-The suite verifies:
+Routine qualification runs on one hosted Ubuntu runner:
 
-- `openscad`
-- `pythonscad`
-- `python3`
-- `git`
-- `scad-toolchain-info`
-- `openscad-docsgen`
-- `openscad-mdimggen`
-- `scad-image-watermark`
-- OpenSCAD PNG/STL
-- PNG watermark post-processing
-- PythonSCAD PNG/STL
-- PythonSCAD `-D` define injection
-- functional Git init/add/commit
+1. pull and test the OpenSCAD profile;
+2. keep those Docker layers locally available;
+3. pull and test the full superset;
+4. report exact linux/amd64 compressed OCI bytes and Docker unpacked image size.
 
+This reflects efficient normal use and shows how much additional data the full
+profile needs once shared layers are present.
+
+Migration 005 also performed one controlled cold-vs-cold benchmark by clearing
+Docker state between pulls. That benchmark is historical architecture evidence;
+destructive pruning is deliberately **not** part of routine CI because it
+throws away shared data and unrelated hosted-runner images.
+
+Qualified candidate measurements:
+
+| Profile | Compressed OCI bytes | Unpacked bytes | Controlled cold pull |
+| --- | ---: | ---: | ---: |
+| OpenSCAD-focused | 328,098,501 | 961,779,232 | 13.211 s |
+| full/dual | 449,516,893 | 1,313,898,129 | 15.464 s |
+
+The focused runtime removes 121,418,392 compressed bytes, about 27.0% of the
+full image, for consumers that do not need PythonSCAD.
 
 ## PNG watermark tooling
 
-The v0.4 suite verifies the lightweight image-processing capability exposed by
-the published image:
+Both profiles must expose:
 
 ```text
 scad-image-watermark
 ```
 
-The external test first produces a normal OpenSCAD PNG and then calls the
-public watermark command with copyright text. It checks that the resulting PNG
-is valid, keeps the original dimensions and is not byte-identical to the input.
-
-The generated Pages report includes the watermarked render as consumer
-evidence.
+The external suite produces a real OpenSCAD PNG, applies a copyright label and
+checks that the resulting PNG is valid, keeps the original dimensions and is
+not byte-identical to its input.
 
 ## OpenSCAD documentation tooling
 
-The v0.3 suite adds an external consumer test for the documentation tooling
-introduced by toolchain v0.3.0.
-
-The published image must expose:
+Both profiles must expose:
 
 ```text
 openscad-docsgen
 openscad-mdimggen
 ```
 
-The consumer source lives at:
-
-```text
-test/docsgen/docsgen.scad
-```
-
-It deliberately uses upstream docsgen syntax, beginning with a required file
-block:
-
-```scad
-// File: docsgen.scad
-```
-
-before documenting its module.
-
-The suite performs two functional checks:
-
-```text
-openscad-docsgen -m -T
-    -> lint-like parse/test mode
-
-openscad-docsgen -m
-    -> real Markdown generation
-```
-
-The generated Markdown must be non-empty and contain the expected
-`docsgen_consumer_smoke` module. This means the external suite tests actual
-published-image behavior rather than merely checking that a binary exists.
-
-`openscad-mdimggen` is checked as a public command in this step. Its richer
-Markdown/render workflow is intentionally separate from the minimal source/API
-documentation smoke test.
-
+The suite runs a real docsgen parse and Markdown generation against a consumer
+`.scad` source. The generated Markdown must be non-empty and contain the
+expected module documentation.
 
 ## BOSL2 capability comparison
 
-The v0.2 suite deliberately compares three routes:
+The suite deliberately keeps these routes separate:
 
 ```text
-OpenSCAD   -> BOSL2
-PythonSCAD -> BOSL2 .scad
-PythonSCAD -> pybosl2
+OpenSCAD   -> BOSL2          PASS expected, both profiles
+PythonSCAD -> pybosl2        PASS expected, full profile only
+PythonSCAD -> BOSL2 .scad    XFAIL compatibility probe, full only
 ```
 
-The comparison sources use equivalent geometry:
-
-```text
-30 × 20 × 10 rounded cuboid
-rounding = 3
-```
-
-This makes the generated renders useful evidence without turning the repository
-into a broad design benchmark.
-
-### Native OpenSCAD + BOSL2
+Native OpenSCAD uses:
 
 ```scad
 include <BOSL2/std.scad>
@@ -189,52 +178,25 @@ include <BOSL2/std.scad>
 cuboid([30, 20, 10], rounding=3);
 ```
 
-### PythonSCAD consuming BOSL2 SCAD
-
-PythonSCAD `osuse()` needs a real filesystem path; it does not resolve
-`BOSL2/shapes3d.scad` through `OPENSCADPATH`.
-
-The toolchain therefore exposes `BOSL2_ROOT`:
-
-```python
-import os
-from pathlib import Path
-
-from pythonscad import *
-
-bosl2_file = Path(os.environ["BOSL2_ROOT"]) / "std.scad"
-bosl2 = osuse(str(bosl2_file))
-
-part = bosl2.cuboid([30, 20, 10], rounding=3)
-part.show()
-```
-
-### BOSL2 filesystem path
-
-The external test suite requires the published image to expose:
+The runtime exposes:
 
 ```text
+OPENSCADPATH=/opt/openscad-libraries
 BOSL2_ROOT=/opt/openscad-libraries/BOSL2
 ```
 
-The exact current value is shown in the logs, but consumers should use the
-environment variable rather than hardcoding the installation directory.
+OpenSCAD resolves normal include/use through `OPENSCADPATH`. PythonSCAD
+`osuse()` needs a real file path and therefore uses `BOSL2_ROOT`.
 
-This is deliberately tested separately from `OPENSCADPATH` because the two
-serve different consumers:
+## PythonSCAD and pybosl2
+
+The full runtime installs pybosl2 and Shapely under:
 
 ```text
-OpenSCAD include/use
-    -> OPENSCADPATH
-
-PythonSCAD osuse()/osinclude()
-    -> explicit path rooted at BOSL2_ROOT
+/opt/python-libs
 ```
 
-### PythonSCAD + pybosl2
-
-PythonSCAD embeds CPython and does not reliably inherit the container's
-`PYTHONPATH`. The toolchain-installed package directory is therefore added
+PythonSCAD embeds CPython and may require the shared package path to be added
 explicitly:
 
 ```python
@@ -248,267 +210,87 @@ part = cuboid([30, 20, 10], rounding=3)
 part.show()
 ```
 
-Each route must create both PNG and STL output.
+Test files must not be named `pybosl2.py`, because a local file with that name
+shadows the installed package.
 
-The test does **not** assume full feature parity between BOSL2 and pybosl2.
-They are independently versioned implementations.
+## PythonSCAD interoperability findings
 
-### Embedded Python package path
+The suite records known limitations as active XFAIL tests rather than silently
+ignoring them.
 
-The suite also runs a small `python_path_probe.py` under PythonSCAD. This is
-useful evidence when debugging external Python package discovery.
+| Capability | Expected status | Finding |
+| --- | --- | --- |
+| OpenSCAD -> BOSL2 | PASS | Native BOSL2/OpenSCAD path |
+| PythonSCAD -> pybosl2 | PASS | Python-native comparison route |
+| PythonSCAD -> BOSL2 `.scad` via `osuse()` | XFAIL | BOSL2's OpenSCAD runtime/version assumptions are not equivalent to PythonSCAD semantics |
+| PythonSCAD -> OpenSCAD experimental `object()` | XFAIL | Object-based OpenSCAD APIs do not currently cross as usable Python-side objects |
 
-The expected toolchain pattern for pip-installed shared packages is:
+The XFAILs are deliberately strict:
 
-```python
-import sys
-sys.path.insert(0, "/opt/python-libs")
-```
+- the documented failure mode is accepted;
+- unexpected success fails the suite so the conclusion must be reviewed;
+- a different failure also fails the suite.
 
-The suite intentionally does not treat container `PYTHONPATH` as sufficient for
-the embedded PythonSCAD runtime.
+This means PythonSCAD remains a supported alternative/experimental runtime for
+projects that intentionally use it, while OpenSCAD remains the primary base for
+reusable SCAD-library APIs in the current ecosystem.
 
-### Python module naming
+## Test execution order
 
-The pybosl2 consumer test is deliberately named:
-
-```text
-pybosl2_consumer.py
-```
-
-and **not** `pybosl2.py`. A local file called `pybosl2.py` shadows the installed
-package on Python's import path and produces a circular/partially initialized
-module error.
-
-## Repository layout
+The profile-aware runner follows the dependency chain:
 
 ```text
-docker.scad-toolchain.test/
-├── README.md
-├── CHATGPT.md
-├── toolchain.env
-├── scripts/
-│   ├── run-tests.sh
-│   ├── test-pythonscad-defines.sh
-│   ├── build-report.sh
-│   └── build-index.sh
-├── test/
-│   ├── docsgen/
-│   │   └── docsgen.scad
-│   ├── openscad/
-│   │   ├── smoke.scad
-│   │   └── bosl2.scad
-│   └── pythonscad/
-│       ├── smoke.py
-│       ├── define-probe.py
-│       ├── bosl2_scad.py
-│       ├── pybosl2_consumer.py
-│       └── python_path_probe.py
-└── .github/
-    └── workflows/
-        └── test.yml
+1. Toolchain / environment
+2. Shared OpenSCAD base functionality
+3. Shared OpenSCAD libraries/tooling
+4. Full-runtime PythonSCAD functionality, when profile=full
+5. Full-runtime interoperability PASS/XFAIL probes
 ```
 
-Generated directories:
+This keeps failures interpretable: establish the shared runtime contract before
+advanced dual-runtime behaviour.
 
-```text
-out/
-site/
-```
+## Reports and artifacts
 
-are not committed to the normal source branch.
+Each profile writes separate raw output below `out/`. The final report combines
+both profiles and keeps profile identity visible.
 
-## Pages
+The report includes:
 
-A successful `main` run updates:
+- PASS/XFAIL table;
+- profile-specific sections;
+- representative generated renders;
+- exact runtime image names/versions;
+- raw image-distribution metrics.
+
+Successful non-PR runs update GitHub Pages:
 
 ```text
 /latest/
 ```
 
-A released test tag gets its own permanent directory. The root Pages index is
-rebuilt after each successful publish and keeps historical reports.
+A released test tag gets a permanent tag-named directory and the root index
+keeps historical reports.
 
-## Development order
+## Release sequence
 
-For a new toolchain capability:
+For the v0.5.0 runtime family:
 
-1. add it to `docker.scad-toolchain`;
-2. let toolchain `main` publish/update `:edge`;
-3. let this repository's `main` test `:edge`;
-4. fix problems until the external consumer suite is green;
-5. publish the immutable toolchain tag, for example `v0.4.0`;
-6. let the toolchain tag build automatically dispatch this workflow against
-   `v0.4.0`; this updates the mutable `/latest/` report and proves the
-   published immutable image works;
-7. after that run is green, start
-   `Actions -> Release SCAD toolchain test suite` and provide the suite
-   version, toolchain version and exact verified test-suite commit SHA;
-8. let the permanent release workflow create
-   `test-v0.4.0-toolchain-v0.4.0` and dispatch `test.yml` on that tag;
-9. require that tagged run to pass and publish the permanent Pages report under
-   `/test-v0.4.0-toolchain-v0.4.0/`.
+1. qualify the exact runtime candidate images;
+2. merge the image-family implementation and this profile-aware external suite;
+3. let runtime `main` publish both `:edge` profiles and require external green;
+4. publish immutable toolchain `v0.5.0`;
+5. let the toolchain tag automatically dispatch this suite with
+   `toolchain_version=v0.5.0`;
+6. require that immutable-runtime run to pass;
+7. create the test-suite release with:
+   - suite version `v0.5.0`;
+   - toolchain version `v0.5.0`;
+   - exact verified test-suite source SHA;
+8. require `test-v0.5.0-toolchain-v0.5.0` to pass and publish permanent Pages
+   evidence.
 
-The release tag itself selects the encoded immutable toolchain version; `toolchain.env` can remain on
-`:edge` for normal development.
+Only after that final record is green should downstream tooling pin v0.5.0.
 
-A failed interoperability test is useful evidence. Do not mask it merely to make
-the suite green.
-
-
-## BOSL2 library entrypoint
-
-BOSL2 should be loaded through `std.scad`, including from PythonSCAD.
-
-```text
-OpenSCAD
-    include <BOSL2/std.scad>
-
-PythonSCAD
-    osuse(BOSL2_ROOT / "std.scad")
-```
-
-Do not load `shapes3d.scad` directly just because the test uses `cuboid()`.
-`shapes3d.scad` expects the standard constants and dependencies established by
-`std.scad`; direct loading causes missing-symbol warnings such as `CENTER`,
-`UP`, and `EDGES_ALL`.
-
-
-## PythonSCAD interoperability findings
-
-The suite deliberately records both supported routes and known compatibility
-limits.
-
-| Capability | Status | Finding |
-| --- | --- | --- |
-| OpenSCAD -> BOSL2 | PASS expected | Native BOSL2/OpenSCAD path |
-| PythonSCAD -> pybosl2 | PASS expected | Python-native BOSL2 path |
-| PythonSCAD -> BOSL2 `.scad` via `osuse()` | **XFAIL** | BOSL2 uses OpenSCAD's date-based `version_num()` compatibility gate; PythonSCAD exposes its own semantic-version runtime value |
-| PythonSCAD -> OpenSCAD experimental `object()` | **XFAIL** | Object-based OpenSCAD APIs do not currently cross into PythonSCAD as usable Python-side objects |
-
-These are two independent signs of the same broader architectural limitation:
-PythonSCAD can consume conventional OpenSCAD modules/functions in useful cases,
-but compatibility is incomplete for modern OpenSCAD library architectures and
-libraries that rely strongly on OpenSCAD-specific runtime behavior.
-
-The BOSL2 XFAIL also shows that PythonSCAD is not simply "OpenSCAD with Python
-around it". Although PythonSCAD contains substantial OpenSCAD-derived
-infrastructure, its interoperability/runtime layer can expose different
-semantics to imported `.scad` code.
-
-For this project the current direction is therefore:
-
-```text
-Reusable CAD libraries
-    -> OpenSCAD is the primary implementation target
-
-BOSL2
-    -> OpenSCAD uses native BOSL2
-    -> PythonSCAD uses pybosl2 for comparison/experimentation
-
-PythonSCAD
-    -> remains useful as an alternative/experimental CAD environment
-    -> is not currently the foundation for our object-based reusable SCAD APIs
-```
-
-The direct `PythonSCAD -> BOSL2 .scad` test is intentionally retained as an
-XFAIL compatibility probe. The suite only accepts the documented BOSL2 version
-check failure. Unexpected success or any different failure causes the test to
-fail so that this conclusion must be reviewed instead of silently becoming
-outdated.
-
-
-### OpenSCAD object compatibility probe
-
-The earlier object interoperability finding is now an active XFAIL probe:
-
-```text
-test/pythonscad/openscad_object/
-├── object_api.scad
-└── object_bridge_probe.py
-```
-
-The OpenSCAD side deliberately exposes an experimental `object()` API without
-scalar bridge wrappers. PythonSCAD must consume that real object value.
-
-Current behavior is XFAIL. If a future PythonSCAD release successfully
-round-trips the object, the probe unexpectedly succeeds and the suite fails so
-the compatibility status can be reviewed.
-
-The generated verification page puts PASS/XFAIL status first, followed by the
-two interoperability findings, and only then shows renders for supported
-routes.
-
-
-#### PythonSCAD script path note
-
-The object interoperability probe receives the absolute SCAD library path
-from the verification harness through:
-
-```text
-OPENSCAD_OBJECT_PROBE_SCAD
-```
-
-The PythonSCAD side then loads the library directly with:
-
-```python
-library = osuse(os.environ["OPENSCAD_OBJECT_PROBE_SCAD"])
-```
-
-The environment variable only supplies the location; `osuse()` is the
-PythonSCAD API that opens the OpenSCAD library. This keeps the probe portable
-between GitHub Actions and local Docker runs without hardcoding a workspace
-path.
-
-
-## Test execution order
-
-`run-tests.sh` follows the dependency chain from the container environment to
-the most advanced interoperability checks:
-
-```text
-1. Toolchain / environment
-   - toolchain info
-   - public commands
-   - environment library paths
-   - Git functional smoke test
-
-2. Base functionality
-   - OpenSCAD PNG
-   - OpenSCAD STL
-   - PythonSCAD PNG
-   - PythonSCAD STL
-
-3. Additional runtime tests
-   - PythonSCAD -D define injection
-   - PythonSCAD embedded sys.path probe
-
-4. Library / interoperability
-   - OpenSCAD -> BOSL2
-   - PythonSCAD -> pybosl2
-   - XFAIL PythonSCAD -> BOSL2 .scad
-   - XFAIL PythonSCAD -> OpenSCAD object()
-```
-
-This ordering makes failures easier to interpret: first establish that the
-container and public tools are correct, then verify the two CAD engines, then
-their runtime details, and finally the advanced library/interoperability
-boundaries.
-
-
-## Verification report order
-
-The generated report mirrors the execution structure:
-
-```text
-Test summary
-1. Toolchain / environment
-2. Base functionality
-3. Additional runtime tests
-4. Library / interoperability
-Raw outputs
-```
-
-The complete PASS/XFAIL table remains at the top so known interoperability
-limits are visible immediately, while the detailed sections follow the same
-dependency order as `run-tests.sh`.
+A failed interoperability test is useful evidence. Do not mask it merely to
+make a release green.

@@ -6,8 +6,9 @@ OUT="${ROOT}/out"
 SITE="${ROOT}/site"
 
 SUITE_VERSION="${TEST_SUITE_VERSION:-unversioned}"
-TOOLCHAIN_IMAGE="${SCAD_TOOLCHAIN_IMAGE:-unknown}"
 TOOLCHAIN_VERSION="${SCAD_TOOLCHAIN_VERSION:-unknown}"
+OPENSCAD_CONTAINER="${OPENSCAD_CONTAINER:-unknown}"
+FULL_CONTAINER="${FULL_CONTAINER:-unknown}"
 
 OPENSCAD_VERSION="$(openscad --version 2>&1 | head -n1)"
 PYTHONSCAD_VERSION="$(pythonscad --version 2>&1 | head -n1)"
@@ -20,21 +21,12 @@ BOSL2_VERSION_INFO="${BOSL2_VERSION:-unknown}"
 PYBOSL2_VERSION_INFO="${PYBOSL2_VERSION:-unknown}"
 
 rm -rf "${SITE}"
-mkdir -p \
-  "${SITE}/openscad" \
-  "${SITE}/pythonscad" \
-  "${SITE}/scons" \
-  "${SITE}/docsgen" \
-  "${SITE}/watermark" \
-  "${SITE}/bosl2-openscad" \
-  "${SITE}/bosl2-pythonscad-py"
+mkdir -p "${SITE}/openscad" "${SITE}/full"
+cp -a "${OUT}/openscad-profile/." "${SITE}/openscad/"
+cp -a "${OUT}/full-profile/." "${SITE}/full/"
+cp -f "${OUT}/image-metrics.txt" "${SITE}/image-metrics.txt"
 
-for dir in openscad pythonscad scons watermark bosl2-openscad bosl2-pythonscad-py; do
-  cp -f "${OUT}/${dir}/"*.png "${SITE}/${dir}/" 2>/dev/null || true
-  cp -f "${OUT}/${dir}/"*.stl "${SITE}/${dir}/" 2>/dev/null || true
-done
-
-cp -f "${OUT}/docsgen/"*.md "${SITE}/docsgen/" 2>/dev/null || true
+METRICS="$(cat "${OUT}/image-metrics.txt")"
 
 cat > "${SITE}/index.html" <<EOF
 <!doctype html>
@@ -44,176 +36,132 @@ cat > "${SITE}/index.html" <<EOF
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SCAD toolchain test ${SUITE_VERSION}</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 980px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
-    code { background: #f3f3f3; padding: .1rem .3rem; border-radius: .25rem; }
+    body { font-family: system-ui, sans-serif; max-width: 1080px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
+    code, pre { background: #f3f3f3; border-radius: .25rem; }
+    code { padding: .1rem .3rem; }
+    pre { padding: .8rem; overflow-x: auto; }
     table { border-collapse: collapse; width: 100%; margin: 1rem 0 2rem; }
     th, td { text-align: left; border-bottom: 1px solid #ddd; padding: .5rem; vertical-align: top; }
     img { max-width: 100%; height: auto; border: 1px solid #ddd; }
-    .pass { font-weight: 700; }
-    .xfail { font-weight: 700; }
+    .pass, .xfail { font-weight: 700; }
     .comparison { display: grid; grid-template-columns: repeat(auto-fit,minmax(300px,1fr)); gap: 1rem; }
-    .status-table td:first-child { white-space: nowrap; font-weight: 700; }
-    .group-row th { padding-top: 1rem; }
   </style>
 </head>
 <body>
-  <h1>SCAD toolchain verification</h1>
+  <h1>SCAD toolchain runtime-family verification</h1>
 
-  <h2>Test summary</h2>
   <p>
-    The summary follows the same dependency order as <code>run-tests.sh</code>.
-    XFAIL means the compatibility boundary is actively tested and currently
-    expected to fail for one specific documented reason.
+    One external suite validates two related runtime profiles. Shared OpenSCAD
+    behavior is tested independently in both images; PythonSCAD-specific
+    behavior remains required only from the full runtime.
   </p>
 
-  <table class="status-table">
-    <tr><th>Status</th><th>Test</th><th>Meaning</th></tr>
-
-    <tr class="group-row"><th colspan="3">1. Toolchain / environment</th></tr>
-    <tr><td class="pass">PASS</td><td>Toolchain information</td><td>Toolchain metadata is available.</td></tr>
-    <tr><td class="pass">PASS</td><td>Public commands</td><td>OpenSCAD, PythonSCAD, Python, Git, SCons and documentation tooling are exposed.</td></tr>
-    <tr><td class="pass">PASS</td><td>Environment library paths</td><td>BOSL2 and Python package paths are present.</td></tr>
-    <tr><td class="pass">PASS</td><td>Git functional smoke test</td><td>Git can initialize and create a commit.</td></tr>
-
-    <tr class="group-row"><th colspan="3">2. Base functionality</th></tr>
-    <tr><td class="pass">PASS</td><td>OpenSCAD PNG/STL</td><td>Basic OpenSCAD render and export work.</td></tr>
-    <tr><td class="pass">PASS</td><td>Image watermark</td><td>The published image can post-process a rendered PNG through scad-image-watermark.</td></tr>
-    <tr><td class="pass">PASS</td><td>PythonSCAD PNG/STL</td><td>Basic PythonSCAD render and export work.</td></tr>
-
-    <tr class="group-row"><th colspan="3">3. Additional runtime tests</th></tr>
-    <tr><td class="pass">PASS</td><td>SCons → OpenSCAD</td><td>SCons can drive OpenSCAD to produce a real STL output.</td></tr>
-    <tr><td class="pass">PASS</td><td>PythonSCAD -D define injection</td><td>Command-line parameter injection works.</td></tr>
-    <tr><td class="pass">PASS</td><td>PythonSCAD embedded sys.path probe</td><td>Embedded Python runtime path inspection works.</td></tr>
-
-    <tr class="group-row"><th colspan="3">4. Documentation tooling</th></tr>
-    <tr><td class="pass">PASS</td><td>openscad-docsgen command</td><td>Published image exposes the source documentation generator.</td></tr>
-    <tr><td class="pass">PASS</td><td>openscad-mdimggen command</td><td>Published image exposes the Markdown image generator from the same package.</td></tr>
-    <tr><td class="pass">PASS</td><td>docsgen lint/parse</td><td>A real external OpenSCAD source passes docsgen test mode.</td></tr>
-    <tr><td class="pass">PASS</td><td>docsgen Markdown generation</td><td>The documented source produces non-empty Markdown containing the expected module.</td></tr>
-
-    <tr class="group-row"><th colspan="3">5. Library / interoperability</th></tr>
-    <tr><td class="pass">PASS</td><td>OpenSCAD → BOSL2</td><td>Native OpenSCAD/BOSL2 route works.</td></tr>
-    <tr><td class="pass">PASS</td><td>PythonSCAD → pybosl2</td><td>Python-native BOSL2 comparison route works.</td></tr>
-    <tr><td class="xfail">XFAIL</td><td>PythonSCAD → BOSL2 .scad via osuse()</td><td>Known OpenSCAD version/runtime compatibility mismatch.</td></tr>
-    <tr><td class="xfail">XFAIL</td><td>PythonSCAD → OpenSCAD object()</td><td>OpenSCAD object values do not currently cross as usable Python-side objects.</td></tr>
+  <h2>Profile summary</h2>
+  <table>
+    <tr><th>Capability</th><th>OpenSCAD runtime</th><th>Full runtime</th></tr>
+    <tr><td>OpenSCAD PNG/STL</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+    <tr><td>OpenSCAD → BOSL2</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+    <tr><td>SCons → OpenSCAD</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+    <tr><td>docsgen/mdimggen</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+    <tr><td>watermark/Pillow</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+    <tr><td>Git/tooling basics</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+    <tr><td>PythonSCAD PNG/STL</td><td>not required</td><td class="pass">PASS</td></tr>
+    <tr><td>PythonSCAD → pybosl2</td><td>not required</td><td class="pass">PASS</td></tr>
+    <tr><td>PythonSCAD → BOSL2 .scad</td><td>not required</td><td class="xfail">XFAIL</td></tr>
+    <tr><td>PythonSCAD → OpenSCAD object()</td><td>not required</td><td class="xfail">XFAIL</td></tr>
   </table>
 
-  <p>
-    A documented XFAIL is not ignored. A different failure or an unexpected
-    success makes the verification suite fail so the compatibility assessment
-    must be reviewed.
-  </p>
-
-  <h2>1. Toolchain / environment</h2>
+  <h2>Exact runtime inputs</h2>
   <table>
     <tr><th>Test suite</th><td><code>${SUITE_VERSION}</code></td></tr>
-    <tr><th>Toolchain image</th><td><code>${TOOLCHAIN_IMAGE}:${TOOLCHAIN_VERSION}</code></td></tr>
+    <tr><th>Toolchain version/tag</th><td><code>${TOOLCHAIN_VERSION}</code></td></tr>
+    <tr><th>OpenSCAD image</th><td><code>${OPENSCAD_CONTAINER}</code></td></tr>
+    <tr><th>Full image</th><td><code>${FULL_CONTAINER}</code></td></tr>
     <tr><th>OpenSCAD</th><td>${OPENSCAD_VERSION}</td></tr>
-    <tr><th>PythonSCAD</th><td>${PYTHONSCAD_VERSION}</td></tr>
+    <tr><th>PythonSCAD (full)</th><td>${PYTHONSCAD_VERSION}</td></tr>
     <tr><th>Python</th><td>${PYTHON_VERSION}</td></tr>
     <tr><th>Git</th><td>${GIT_VERSION}</td></tr>
     <tr><th>SCons</th><td>${SCONS_VERSION_INFO}</td></tr>
     <tr><th>openscad_docsgen</th><td>${DOCSGEN_VERSION}</td></tr>
     <tr><th>Pillow</th><td>${PILLOW_VERSION_INFO}</td></tr>
     <tr><th>BOSL2</th><td>v${BOSL2_VERSION_INFO}</td></tr>
-    <tr><th>pybosl2</th><td>${PYBOSL2_VERSION_INFO}</td></tr>
+    <tr><th>pybosl2 (full)</th><td>${PYBOSL2_VERSION_INFO}</td></tr>
   </table>
 
-  <h2>2. Base functionality</h2>
+  <h2>Distribution measurements</h2>
+  <p>
+    Exact compressed bytes are the linux/amd64 OCI layer sizes and unpacked
+    bytes are reported by Docker after pull. Routine qualification keeps the
+    OpenSCAD image layers locally available before pulling the full superset,
+    so the raw metric explicitly identifies whether pull time is fresh-runner
+    or shared-layer reuse. Independent cold-pull benchmarking is kept out of
+    routine CI to avoid deliberately deleting and redownloading shared data.
+  </p>
+  <pre>${METRICS}</pre>
+  <p><a href="image-metrics.txt">Raw image metrics</a></p>
+
+  <h2>Shared OpenSCAD evidence</h2>
   <div class="comparison">
     <div>
-      <h3>OpenSCAD</h3>
-      <img src="openscad/smoke.png" alt="OpenSCAD smoke render">
+      <h3>OpenSCAD-focused image</h3>
+      <img src="openscad/openscad/smoke.png" alt="OpenSCAD runtime smoke render">
+      <p><a href="openscad/openscad/smoke.stl">Smoke STL</a></p>
+      <p><a href="openscad/scons/smoke.stl">SCons → OpenSCAD STL</a></p>
+      <p><a href="openscad/docsgen/docsgen.scad.md">Generated docs</a></p>
     </div>
     <div>
-      <h3>PythonSCAD</h3>
-      <img src="pythonscad/smoke.png" alt="PythonSCAD smoke render">
+      <h3>Full image — same OpenSCAD contract</h3>
+      <img src="full/openscad/smoke.png" alt="Full runtime OpenSCAD smoke render">
+      <p><a href="full/openscad/smoke.stl">Smoke STL</a></p>
+      <p><a href="full/scons/smoke.stl">SCons → OpenSCAD STL</a></p>
+      <p><a href="full/docsgen/docsgen.scad.md">Generated docs</a></p>
     </div>
   </div>
 
-  <h3>Image watermark</h3>
-  <p>
-    The OpenSCAD smoke render is passed through the public
-    <code>scad-image-watermark</code> command.
-  </p>
-  <img src="watermark/openscad-smoke-watermarked.png" alt="Watermarked OpenSCAD smoke render">
+  <h3>Watermark</h3>
+  <div class="comparison">
+    <img src="openscad/watermark/openscad-smoke-watermarked.png" alt="OpenSCAD runtime watermarked render">
+    <img src="full/watermark/openscad-smoke-watermarked.png" alt="Full runtime watermarked render">
+  </div>
 
-  <h2>3. Additional runtime tests</h2>
-  <p>
-    The suite verifies that SCons can drive OpenSCAD to produce a real STL,
-    and also verifies PythonSCAD command-line define injection and records the
-    embedded Python <code>sys.path</code>. These are runtime diagnostics rather
-    than geometry comparisons.
-  </p>
-  <p><a href="scons/smoke.stl">SCons → OpenSCAD smoke STL</a></p>
+  <h3>OpenSCAD → BOSL2</h3>
+  <div class="comparison">
+    <img src="openscad/bosl2-openscad/model.png" alt="OpenSCAD runtime BOSL2 render">
+    <img src="full/bosl2-openscad/model.png" alt="Full runtime BOSL2 render">
+  </div>
 
-  <h2>4. Documentation tooling</h2>
-  <p>
-    The suite consumes <code>openscad-docsgen</code> from the published image
-    using a separate repository source file. It first runs test mode as a
-    lint-like parse check and then generates real Markdown.
-  </p>
-  <p>
-    <a href="docsgen/docsgen.scad.md">Generated docsgen Markdown</a>
-  </p>
-  <p>
-    <code>openscad-mdimggen</code> is also required as a public command because
-    it is part of the installed upstream documentation package. Its full
-    project-design rendering behavior is intentionally not conflated with this
-    source/API documentation smoke test.
-  </p>
-
-  <h2>5. Library / interoperability</h2>
-
-  <h3>Supported BOSL2 routes</h3>
-  <p>
-    These two supported routes intentionally render the same small rounded
-    cuboid.
-  </p>
-
+  <h2>Full-runtime PythonSCAD evidence</h2>
   <div class="comparison">
     <div>
-      <h3>OpenSCAD → BOSL2</h3>
-      <img src="bosl2-openscad/model.png" alt="OpenSCAD BOSL2 render">
+      <h3>PythonSCAD</h3>
+      <img src="full/pythonscad/smoke.png" alt="PythonSCAD smoke render">
+      <p><a href="full/pythonscad/smoke.stl">PythonSCAD smoke STL</a></p>
     </div>
     <div>
       <h3>PythonSCAD → pybosl2</h3>
-      <img src="bosl2-pythonscad-py/model.png" alt="PythonSCAD pybosl2 render">
+      <img src="full/bosl2-pythonscad-py/model.png" alt="PythonSCAD pybosl2 render">
+      <p><a href="full/bosl2-pythonscad-py/model.stl">pybosl2 STL</a></p>
     </div>
   </div>
 
-  <h3>XFAIL — PythonSCAD → BOSL2 .scad</h3>
+  <h3>Active compatibility probes</h3>
   <p>
-    BOSL2 <code>std.scad</code> relies on OpenSCAD's date-based
-    <code>version_num()</code> compatibility gate. PythonSCAD exposes its own
-    semantic-version value through the SCAD compatibility runtime, so BOSL2
-    rejects the runtime before the test geometry is created.
+    <strong>XFAIL — PythonSCAD → BOSL2 .scad:</strong> the known runtime/version
+    compatibility mismatch is still required to fail for the documented reason.
+  </p>
+  <p>
+    <strong>XFAIL — PythonSCAD → OpenSCAD object():</strong> OpenSCAD object values
+    still do not cross as usable Python-side objects. Unexpected success or any
+    different failure fails the suite and requires review.
   </p>
 
-  <h3>XFAIL — PythonSCAD → OpenSCAD object()</h3>
-  <p>
-    OpenSCAD experimental <code>object()</code> values currently do not cross
-    the PythonSCAD/OpenSCAD boundary as usable Python-side objects. This blocks
-    the object-based library architecture tested here even though conventional
-    module/function interoperability can work.
-  </p>
-
-  <p>
-    Together these findings show that PythonSCAD can consume useful conventional
-    OpenSCAD code, but advanced OpenSCAD libraries can depend on runtime and
-    value semantics that PythonSCAD does not reproduce identically.
-  </p>
-
-  <h2>Raw outputs</h2>
+  <h2>Raw profile outputs</h2>
   <ul>
-    <li><a href="openscad/smoke.stl">OpenSCAD smoke STL</a></li>
-    <li><a href="pythonscad/smoke.stl">PythonSCAD smoke STL</a></li>
-    <li><a href="scons/smoke.stl">SCons → OpenSCAD smoke STL</a></li>
-    <li><a href="bosl2-openscad/model.stl">OpenSCAD → BOSL2 STL</a></li>
-    <li><a href="bosl2-pythonscad-py/model.stl">PythonSCAD → pybosl2 STL</a></li>
+    <li><a href="openscad/">OpenSCAD runtime outputs</a></li>
+    <li><a href="full/">Full runtime outputs</a></li>
   </ul>
 </body>
 </html>
 EOF
 
-echo "Built report in ${SITE}"
+echo "Built combined runtime-family report in ${SITE}"

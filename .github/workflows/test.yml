@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       toolchain_version:
-        description: 'Optional toolchain version override, e.g. edge or v0.3.0'
+        description: 'Optional toolchain version override, e.g. edge, sha-abc1234 or v0.5.0'
         required: false
         type: string
 
@@ -19,20 +19,19 @@ permissions:
   packages: read
 
 jobs:
-  resolve:
+  test:
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     outputs:
-      image: ${{ steps.config.outputs.image }}
-      version: ${{ steps.config.outputs.version }}
-      container: ${{ steps.config.outputs.container }}
       suite_version: ${{ steps.config.outputs.suite_version }}
+      version: ${{ steps.config.outputs.version }}
 
     steps:
       - uses: actions/checkout@v4
         timeout-minutes: 2
 
-      - id: config
+      - name: Resolve runtime images
+        id: config
         timeout-minutes: 2
         shell: bash
         env:
@@ -44,11 +43,6 @@ jobs:
           VERSION="${SCAD_TOOLCHAIN_VERSION}"
           SUITE_VERSION="latest"
 
-          # A released test tag encodes the exact immutable toolchain version:
-          #
-          #   test-v0.3.0-toolchain-v0.3.0
-          #
-          # Development on main deliberately uses the mutable :edge image.
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             SUITE_VERSION="${GITHUB_REF_NAME}"
 
@@ -60,57 +54,140 @@ jobs:
             fi
           fi
 
-          # Manual dispatch may explicitly select a toolchain image version.
-          # This is mainly useful for validating a candidate tag before making
-          # a permanent test-suite release.
           if [[ -n "${OVERRIDE_VERSION:-}" ]]; then
             VERSION="${OVERRIDE_VERSION}"
           fi
 
-          echo "image=${SCAD_TOOLCHAIN_IMAGE}" >> "$GITHUB_OUTPUT"
+          OPENSCAD_CONTAINER="${SCAD_TOOLCHAIN_OPENSCAD_IMAGE}:${VERSION}"
+          FULL_CONTAINER="${SCAD_TOOLCHAIN_FULL_IMAGE}:${VERSION}"
+
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "container=${SCAD_TOOLCHAIN_IMAGE}:${VERSION}" >> "$GITHUB_OUTPUT"
           echo "suite_version=${SUITE_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "openscad_container=${OPENSCAD_CONTAINER}" >> "$GITHUB_OUTPUT"
+          echo "full_container=${FULL_CONTAINER}" >> "$GITHUB_OUTPUT"
 
-          echo "Test suite : ${SUITE_VERSION}"
-          echo "Toolchain  : ${SCAD_TOOLCHAIN_IMAGE}:${VERSION}"
+          echo "Test suite       : ${SUITE_VERSION}"
+          echo "OpenSCAD runtime : ${OPENSCAD_CONTAINER}"
+          echo "Full runtime     : ${FULL_CONTAINER}"
 
-  test:
-    needs: resolve
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    container:
-      image: ${{ needs.resolve.outputs.container }}
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    steps:
-      - uses: actions/checkout@v4
+      - name: Log in to GHCR
         timeout-minutes: 2
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run external consumer tests
+      - name: Pull and measure OpenSCAD runtime
         timeout-minutes: 5
-        run: bash ./scripts/run-tests.sh
-
-      - name: Run SCons OpenSCAD consumer test
-        timeout-minutes: 2
-        run: bash ./scripts/test-scons.sh
-
-      - name: Build HTML report
-        timeout-minutes: 2
+        shell: bash
         env:
-          TEST_SUITE_VERSION: ${{ needs.resolve.outputs.suite_version }}
-          SCAD_TOOLCHAIN_IMAGE: ${{ needs.resolve.outputs.image }}
-          SCAD_TOOLCHAIN_VERSION: ${{ needs.resolve.outputs.version }}
-        run: bash ./scripts/build-report.sh
+          CONTAINER: ${{ steps.config.outputs.openscad_container }}
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          : > out/image-metrics.txt
+
+          start="$(date +%s%3N)"
+          docker pull "$CONTAINER"
+          end="$(date +%s%3N)"
+          elapsed=$((end - start))
+          unpacked="$(docker image inspect --format='{{.Size}}' "$CONTAINER")"
+
+          raw="$(docker buildx imagetools inspect --raw "$CONTAINER")"
+          media="$(printf '%s' "$raw" | jq -r '.mediaType // empty')"
+          if [[ "$media" == *image.index* || "$media" == *manifest.list* ]]; then
+            digest="$(printf '%s' "$raw" | jq -r '.manifests[] | select(.platform.os == "linux" and .platform.architecture == "amd64") | .digest' | head -n1)"
+            test -n "$digest"
+            raw="$(docker buildx imagetools inspect --raw "${CONTAINER%@*}@${digest}")"
+          fi
+          compressed="$(printf '%s' "$raw" | jq '[.layers[].size] | add')"
+
+          printf 'openscad pull_mode=fresh-runner image=%s pull_ms=%s compressed_bytes=%s unpacked_bytes=%s\n' \
+            "$CONTAINER" "$elapsed" "$compressed" "$unpacked" \
+            | tee -a out/image-metrics.txt
+
+      - name: Test OpenSCAD runtime contract
+        timeout-minutes: 5
+        shell: bash
+        env:
+          CONTAINER: ${{ steps.config.outputs.openscad_container }}
+        run: |
+          docker run --rm \
+            -v "$PWD:/work" \
+            -w /work \
+            -e SCAD_TOOLCHAIN_PROFILE=openscad \
+            -e SCAD_TOOLCHAIN_TEST_OUT=/work/out/openscad-profile \
+            "$CONTAINER" \
+            bash ./scripts/run-tests.sh
+
+      - name: Pull and measure full runtime with shared layers retained
+        timeout-minutes: 5
+        shell: bash
+        env:
+          CONTAINER: ${{ steps.config.outputs.full_container }}
+        run: |
+          set -euo pipefail
+
+          start="$(date +%s%3N)"
+          docker pull "$CONTAINER"
+          end="$(date +%s%3N)"
+          elapsed=$((end - start))
+          unpacked="$(docker image inspect --format='{{.Size}}' "$CONTAINER")"
+
+          raw="$(docker buildx imagetools inspect --raw "$CONTAINER")"
+          media="$(printf '%s' "$raw" | jq -r '.mediaType // empty')"
+          if [[ "$media" == *image.index* || "$media" == *manifest.list* ]]; then
+            digest="$(printf '%s' "$raw" | jq -r '.manifests[] | select(.platform.os == "linux" and .platform.architecture == "amd64") | .digest' | head -n1)"
+            test -n "$digest"
+            raw="$(docker buildx imagetools inspect --raw "${CONTAINER%@*}@${digest}")"
+          fi
+          compressed="$(printf '%s' "$raw" | jq '[.layers[].size] | add')"
+
+          printf 'full pull_mode=shared-layer-reuse image=%s pull_ms=%s compressed_bytes=%s unpacked_bytes=%s\n' \
+            "$CONTAINER" "$elapsed" "$compressed" "$unpacked" \
+            | tee -a out/image-metrics.txt
+
+      - name: Test full runtime contract
+        timeout-minutes: 5
+        shell: bash
+        env:
+          CONTAINER: ${{ steps.config.outputs.full_container }}
+        run: |
+          docker run --rm \
+            -v "$PWD:/work" \
+            -w /work \
+            -e SCAD_TOOLCHAIN_PROFILE=full \
+            -e SCAD_TOOLCHAIN_TEST_OUT=/work/out/full-profile \
+            "$CONTAINER" \
+            bash ./scripts/run-tests.sh
+
+      - name: Build combined HTML report
+        timeout-minutes: 2
+        shell: bash
+        env:
+          CONTAINER: ${{ steps.config.outputs.full_container }}
+          TEST_SUITE_VERSION: ${{ steps.config.outputs.suite_version }}
+          SCAD_TOOLCHAIN_VERSION: ${{ steps.config.outputs.version }}
+          OPENSCAD_CONTAINER: ${{ steps.config.outputs.openscad_container }}
+          FULL_CONTAINER: ${{ steps.config.outputs.full_container }}
+        run: |
+          docker run --rm \
+            -v "$PWD:/work" \
+            -w /work \
+            -e TEST_SUITE_VERSION \
+            -e SCAD_TOOLCHAIN_VERSION \
+            -e OPENSCAD_CONTAINER \
+            -e FULL_CONTAINER \
+            "$CONTAINER" \
+            bash ./scripts/build-report.sh
 
       - name: Upload raw test output
         timeout-minutes: 2
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: scad-toolchain-test-output-${{ needs.resolve.outputs.suite_version }}
+          name: scad-toolchain-test-output-${{ steps.config.outputs.suite_version }}
           path: out/
           if-no-files-found: warn
 
@@ -124,7 +201,7 @@ jobs:
           if-no-files-found: error
 
   publish:
-    needs: [resolve, test]
+    needs: test
     if: success() && github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -169,7 +246,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          DEST="pages/${{ needs.resolve.outputs.suite_version }}"
+          DEST="pages/${{ needs.test.outputs.suite_version }}"
           rm -rf "${DEST}"
           mkdir -p "${DEST}"
           cp -a report/. "${DEST}/"

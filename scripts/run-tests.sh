@@ -2,18 +2,32 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUT="${ROOT}/out"
+PROFILE="${SCAD_TOOLCHAIN_PROFILE:?SCAD_TOOLCHAIN_PROFILE is required}"
+OUT="${SCAD_TOOLCHAIN_TEST_OUT:-${ROOT}/out/${PROFILE}}"
+
+case "$PROFILE" in
+  openscad|full) ;;
+  *)
+    echo "ERROR: unsupported SCAD_TOOLCHAIN_PROFILE=${PROFILE}" >&2
+    exit 1
+    ;;
+esac
 
 rm -rf "${OUT}"
 mkdir -p \
   "${OUT}/openscad" \
-  "${OUT}/pythonscad" \
   "${OUT}/docsgen" \
   "${OUT}/watermark" \
-  "${OUT}/bosl2-openscad" \
-  "${OUT}/bosl2-pythonscad-scad" \
-  "${OUT}/pythonscad-openscad-object" \
-  "${OUT}/bosl2-pythonscad-py"
+  "${OUT}/scons" \
+  "${OUT}/bosl2-openscad"
+
+if [[ "$PROFILE" == "full" ]]; then
+  mkdir -p \
+    "${OUT}/pythonscad" \
+    "${OUT}/bosl2-pythonscad-scad" \
+    "${OUT}/pythonscad-openscad-object" \
+    "${OUT}/bosl2-pythonscad-py"
+fi
 
 run_checked() {
   local label="$1"
@@ -84,18 +98,21 @@ run_expected_failure() {
 # 1. Toolchain / environment
 # -------------------------------------------------------------------
 
-echo "== Toolchain information =="
+echo "== Toolchain information (${PROFILE}) =="
 scad-toolchain-info
 
 echo
 echo "== Public commands =="
 command -v openscad
-command -v pythonscad
 command -v python3
 command -v git
+command -v scons
 command -v openscad-docsgen
 command -v openscad-mdimggen
 command -v scad-image-watermark
+if [[ "$PROFILE" == "full" ]]; then
+  command -v pythonscad
+fi
 
 echo
 echo "== Environment library paths =="
@@ -106,6 +123,9 @@ printf 'PYTHONPATH=%s\n' "${PYTHONPATH:-<unset>}"
 test -n "${BOSL2_ROOT:-}"
 test -f "${BOSL2_ROOT}/std.scad"
 test -f "${BOSL2_ROOT}/shapes3d.scad"
+if [[ "$PROFILE" == "full" ]]; then
+  test -n "${PYTHONPATH:-}"
+fi
 
 echo
 echo "== Git functional smoke test =="
@@ -161,38 +181,46 @@ run_checked "OpenSCAD STL" \
     "${ROOT}/test/openscad/smoke.scad"
 test -s "${OUT}/openscad/smoke.stl"
 
-run_checked "PythonSCAD PNG" \
-  xvfb-run -a pythonscad \
-    --render \
-    --imgsize=800,600 \
-    -o "${OUT}/pythonscad/smoke.png" \
-    --trust-python \
-    "${ROOT}/test/pythonscad/smoke.py"
-test -s "${OUT}/pythonscad/smoke.png"
+if [[ "$PROFILE" == "full" ]]; then
+  run_checked "PythonSCAD PNG" \
+    xvfb-run -a pythonscad \
+      --render \
+      --imgsize=800,600 \
+      -o "${OUT}/pythonscad/smoke.png" \
+      --trust-python \
+      "${ROOT}/test/pythonscad/smoke.py"
+  test -s "${OUT}/pythonscad/smoke.png"
 
-run_checked "PythonSCAD STL" \
-  xvfb-run -a pythonscad \
-    -o "${OUT}/pythonscad/smoke.stl" \
-    --trust-python \
-    "${ROOT}/test/pythonscad/smoke.py"
-test -s "${OUT}/pythonscad/smoke.stl"
+  run_checked "PythonSCAD STL" \
+    xvfb-run -a pythonscad \
+      -o "${OUT}/pythonscad/smoke.stl" \
+      --trust-python \
+      "${ROOT}/test/pythonscad/smoke.py"
+  test -s "${OUT}/pythonscad/smoke.stl"
+fi
 
 # -------------------------------------------------------------------
 # 3. Additional runtime tests
 # -------------------------------------------------------------------
 
 echo
-echo "== PythonSCAD -D define test =="
-bash "$ROOT/scripts/test-pythonscad-defines.sh"
+echo "== SCons -> OpenSCAD =="
+SCAD_TOOLCHAIN_TEST_OUT="$OUT" bash "$ROOT/scripts/test-scons.sh"
 
-echo
-echo "== PythonSCAD embedded sys.path probe =="
-run_checked "PythonSCAD sys.path probe" \
-  xvfb-run -a pythonscad \
-    -o "${OUT}/pythonscad/path-probe.stl" \
-    --trust-python \
-    "${ROOT}/test/pythonscad/python_path_probe.py"
-test -s "${OUT}/pythonscad/path-probe.stl"
+if [[ "$PROFILE" == "full" ]]; then
+  echo
+  echo "== PythonSCAD -D define test =="
+  bash "$ROOT/scripts/test-pythonscad-defines.sh"
+
+  echo
+  echo "== PythonSCAD embedded sys.path probe =="
+  run_checked "PythonSCAD sys.path probe" \
+    xvfb-run -a pythonscad \
+      -o "${OUT}/pythonscad/path-probe.stl" \
+      --trust-python \
+      "${ROOT}/test/pythonscad/python_path_probe.py"
+  test -s "${OUT}/pythonscad/path-probe.stl"
+fi
 
 # -------------------------------------------------------------------
 # 4. Documentation tooling
@@ -210,15 +238,12 @@ DOCSGEN_GENERATED="${DOCSGEN_SOURCE}.md"
 
 cp "${ROOT}/test/docsgen/docsgen.scad" "${DOCSGEN_SOURCE}"
 
-# Parse/test mode is the lint-like source validation route.
 run_checked "openscad-docsgen lint/parse" \
   openscad-docsgen \
     -m \
     -T \
     "${DOCSGEN_SOURCE}"
 
-# Then prove that the published image can generate real Markdown as an
-# external consumer, not just expose the executable.
 rm -f "${DOCSGEN_GENERATED}"
 run_checked "openscad-docsgen Markdown generation" \
   openscad-docsgen \
@@ -248,47 +273,42 @@ run_checked "OpenSCAD -> BOSL2 STL" \
     "${ROOT}/test/openscad/bosl2.scad"
 test -s "${OUT}/bosl2-openscad/model.stl"
 
-run_checked "PythonSCAD -> pybosl2 PNG" \
-  xvfb-run -a pythonscad \
-    --render \
-    --imgsize=800,600 \
-    -o "${OUT}/bosl2-pythonscad-py/model.png" \
-    --trust-python \
-    "${ROOT}/test/pythonscad/pybosl2_consumer.py"
-test -s "${OUT}/bosl2-pythonscad-py/model.png"
-
-run_checked "PythonSCAD -> pybosl2 STL" \
-  xvfb-run -a pythonscad \
-    -o "${OUT}/bosl2-pythonscad-py/model.stl" \
-    --trust-python \
-    "${ROOT}/test/pythonscad/pybosl2_consumer.py"
-test -s "${OUT}/bosl2-pythonscad-py/model.stl"
-
-# Known incompatibility probe:
-# BOSL2/std.scad uses OpenSCAD's date-based version_num() as a compatibility
-# gate. PythonSCAD reports its own semantic-version value through the SCAD
-# compatibility runtime, so BOSL2 currently rejects the runtime.
-run_expected_failure \
-  "PythonSCAD -> BOSL2 SCAD (expected incompatibility)" \
-  "BOSL2 requires OpenSCAD version 2021.01 or later." \
-  xvfb-run -a pythonscad \
-    -o "${OUT}/bosl2-pythonscad-scad/xfail.stl" \
-    --trust-python \
-    "${ROOT}/test/pythonscad/bosl2_scad.py"
-
-# Known incompatibility probe:
-# OpenSCAD experimental object() values do not currently cross into PythonSCAD
-# as usable Python-side objects.
-run_expected_failure \
-  "PythonSCAD -> OpenSCAD object() (expected incompatibility)" \
-  "PYTHONSCAD_OPENSCAD_OBJECT_XFAIL" \
-  env \
-    OPENSCAD_OBJECT_PROBE_SCAD="${ROOT}/test/pythonscad/openscad_object/object_api.scad" \
+if [[ "$PROFILE" == "full" ]]; then
+  run_checked "PythonSCAD -> pybosl2 PNG" \
     xvfb-run -a pythonscad \
-      --enable=object-function \
-      -o "${OUT}/pythonscad-openscad-object/xfail.stl" \
+      --render \
+      --imgsize=800,600 \
+      -o "${OUT}/bosl2-pythonscad-py/model.png" \
       --trust-python \
-      "${ROOT}/test/pythonscad/openscad_object/object_bridge_probe.py"
+      "${ROOT}/test/pythonscad/pybosl2_consumer.py"
+  test -s "${OUT}/bosl2-pythonscad-py/model.png"
+
+  run_checked "PythonSCAD -> pybosl2 STL" \
+    xvfb-run -a pythonscad \
+      -o "${OUT}/bosl2-pythonscad-py/model.stl" \
+      --trust-python \
+      "${ROOT}/test/pythonscad/pybosl2_consumer.py"
+  test -s "${OUT}/bosl2-pythonscad-py/model.stl"
+
+  run_expected_failure \
+    "PythonSCAD -> BOSL2 SCAD (expected incompatibility)" \
+    "BOSL2 requires OpenSCAD version 2021.01 or later." \
+    xvfb-run -a pythonscad \
+      -o "${OUT}/bosl2-pythonscad-scad/xfail.stl" \
+      --trust-python \
+      "${ROOT}/test/pythonscad/bosl2_scad.py"
+
+  run_expected_failure \
+    "PythonSCAD -> OpenSCAD object() (expected incompatibility)" \
+    "PYTHONSCAD_OPENSCAD_OBJECT_XFAIL" \
+    env \
+      OPENSCAD_OBJECT_PROBE_SCAD="${ROOT}/test/pythonscad/openscad_object/object_api.scad" \
+      xvfb-run -a pythonscad \
+        --enable=object-function \
+        -o "${OUT}/pythonscad-openscad-object/xfail.stl" \
+        --trust-python \
+        "${ROOT}/test/pythonscad/openscad_object/object_bridge_probe.py"
+fi
 
 echo
-echo "All supported SCAD toolchain consumer tests passed; documented XFAILs matched expectations."
+echo "SCAD toolchain consumer tests passed for ${PROFILE}; documented full-runtime XFAILs matched expectations where applicable."
