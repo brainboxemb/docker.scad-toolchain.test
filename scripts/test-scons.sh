@@ -2,7 +2,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUT="${ROOT}/out/scons"
+PROFILE_OUT="${SCAD_TOOLCHAIN_TEST_OUT:-${ROOT}/out}"
+OUT="${PROFILE_OUT}/scons"
 
 rm -rf "${OUT}"
 mkdir -p "${OUT}"
