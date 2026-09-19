@@ -67,6 +67,7 @@ cat > "${SITE}/index.html" <<EOF
     <tr><td>docsgen/mdimggen</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
     <tr><td>watermark/Pillow</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
     <tr><td>Git/tooling basics</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+    <tr><td>Open-source acknowledgment TXT/PDF</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
     <tr><td>PythonSCAD PNG/STL</td><td>not required</td><td class="pass">PASS</td></tr>
     <tr><td>PythonSCAD → pybosl2</td><td>not required</td><td class="pass">PASS</td></tr>
     <tr><td>PythonSCAD → BOSL2 .scad</td><td>not required</td><td class="xfail">XFAIL</td></tr>
@@ -102,6 +103,32 @@ cat > "${SITE}/index.html" <<EOF
   </p>
   <pre>${METRICS}</pre>
   <p><a href="image-metrics.txt">Raw image metrics</a></p>
+
+  <h2>Open-source distribution documents</h2>
+  <p>
+    Both runtime profiles expose a generated acknowledgment TXT/PDF plus the
+    direct-license index and installed package inventories. The external suite
+    checks the profile identity, direct-component coverage and PDF envelope,
+    then retains the exact files below as evidence.
+  </p>
+  <div class="comparison">
+    <div>
+      <h3>OpenSCAD-focused profile</h3>
+      <p><a href="openscad/compliance/OPEN_SOURCE_ACKNOWLEDGMENTS.txt">Acknowledgments TXT</a></p>
+      <p><a href="openscad/compliance/OPEN_SOURCE_ACKNOWLEDGMENTS.pdf">Acknowledgments PDF</a></p>
+      <p><a href="openscad/compliance/DIRECT_LICENSE_FILES.txt">Direct license index</a></p>
+      <p><a href="openscad/compliance/DEBIAN_PACKAGES.txt">Debian package inventory</a></p>
+      <p><a href="openscad/compliance/PYTHON_DISTRIBUTIONS.txt">Python distribution inventory</a></p>
+    </div>
+    <div>
+      <h3>Full profile</h3>
+      <p><a href="full/compliance/OPEN_SOURCE_ACKNOWLEDGMENTS.txt">Acknowledgments TXT</a></p>
+      <p><a href="full/compliance/OPEN_SOURCE_ACKNOWLEDGMENTS.pdf">Acknowledgments PDF</a></p>
+      <p><a href="full/compliance/DIRECT_LICENSE_FILES.txt">Direct license index</a></p>
+      <p><a href="full/compliance/DEBIAN_PACKAGES.txt">Debian package inventory</a></p>
+      <p><a href="full/compliance/PYTHON_DISTRIBUTIONS.txt">Python distribution inventory</a></p>
+    </div>
+  </div>
 
   <h2>Shared OpenSCAD evidence</h2>
   <div class="comparison">

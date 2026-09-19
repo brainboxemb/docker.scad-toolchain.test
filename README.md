@@ -28,7 +28,8 @@ Shared contract, tested against both profiles:
 - OpenSCAD -> `openscad-new-dimensions` -> SVG;
 - `openscad-docsgen` / `openscad-mdimggen`;
 - `scad-image-watermark` / Pillow;
-- generic published-runtime filesystem/environment expectations.
+- generic published-runtime filesystem/environment expectations;
+- generated open-source acknowledgment TXT/PDF and runtime license/package inventories.
 
 Additional full-runtime contract:
 
@@ -43,43 +44,36 @@ failure.
 
 ## Current development target
 
-The current external-suite development target is the released runtime family:
+The next suite contract is being qualified against the mutable runtime candidate:
 
 ```text
 SCAD_TOOLCHAIN_OPENSCAD_IMAGE=ghcr.io/brainboxemb/scad-toolchain-openscad
 SCAD_TOOLCHAIN_FULL_IMAGE=ghcr.io/brainboxemb/scad-toolchain
-SCAD_TOOLCHAIN_VERSION=v0.5.1
+SCAD_TOOLCHAIN_VERSION=edge
 ```
 
-Toolchain v0.5.1 added the pinned `openscad-new-dimensions` library. The
-previous immutable record `test-v0.5.0-toolchain-v0.5.1` remains valid for the
-unchanged v0.5.0 suite contract, but it predates a functional external test of
-that new library.
+This adds external consumer coverage for the open-source distribution documents
+introduced by the toolchain v0.5.2 candidate. Development deliberately uses
+`:edge` until the exact runtime release is published.
 
-The consumer test added here is a substantive suite change, so the suite
-version advances to v0.5.1 rather than reusing v0.5.0. It validates the public
-library path/commit diagnostics and exports a real dimensioned SVG from both
-runtime profiles.
-
-A released test-suite tag never relies on a mutable candidate tag. The encoded
-immutable toolchain version in the test tag wins.
+The new suite behavior is intended to become **v0.5.2** only after the complete
+release gate is green. The existing `v0.5.1` changelog/tag remains the last
+released suite record in the meantime.
 
 ## Release gate at a glance
 
-For the dimension-library consumer qualification:
-
 ```text
-toolchain v0.5.1 already published
+toolchain main / :edge with acknowledgment documents
     ↓
-suite v0.5.1 PR/main test against v0.5.1 green
+suite candidate external test against :edge green
     ↓
-test-v0.5.1-toolchain-v0.5.1 green
-    = immutable runtime pair + dimension consumer test verified
-    = permanent Pages evidence published
+toolchain v0.5.2 immutable image green
+    ↓
+suite candidate against exact v0.5.2 green
+    ↓
+test-v0.5.2-toolchain-v0.5.2 green
+    = permanent qualification record
 ```
-
-The older `test-v0.5.0-toolchain-v0.5.1` record is not rewritten; it remains
-the historical proof that toolchain v0.5.1 satisfied the older v0.5.0 suite.
 
 ## Version resolution
 
@@ -162,6 +156,25 @@ openscad-mdimggen
 The suite runs a real docsgen parse and Markdown generation against a consumer
 `.scad` source. The generated Markdown must be non-empty and contain the
 expected module documentation.
+
+## Open-source acknowledgment contract
+
+Both profiles must expose these generated distribution documents:
+
+```text
+/usr/share/doc/scad-toolchain/OPEN_SOURCE_ACKNOWLEDGMENTS.txt
+/usr/share/doc/scad-toolchain/OPEN_SOURCE_ACKNOWLEDGMENTS.pdf
+/usr/share/doc/scad-toolchain/DIRECT_LICENSE_FILES.txt
+/usr/share/doc/scad-toolchain/DEBIAN_PACKAGES.txt
+/usr/share/doc/scad-toolchain/PYTHON_DISTRIBUTIONS.txt
+```
+
+The external test checks more than file existence. It verifies profile identity,
+the direct shared component set, full-runtime-only additions, installed-package
+inventory entries and the basic PDF envelope. The exact TXT/PDF/index/inventory
+files are retained in the raw output and linked from the HTML report.
+
+This is distribution evidence, not a legal-compliance certification.
 
 ## OpenSCAD dimension drawing capability
 

@@ -20,6 +20,7 @@ mkdir -p \
   "${OUT}/watermark" \
   "${OUT}/scons" \
   "${OUT}/dimensions" \
+  "${OUT}/compliance" \
   "${OUT}/bosl2-openscad"
 
 if [[ "$PROFILE" == "full" ]]; then
@@ -134,6 +135,287 @@ test -f "${OPENSCAD_NEW_DIMENSIONS_ROOT}/demo/demo.scad"
 if [[ "$PROFILE" == "full" ]]; then
   test -n "${PYTHONPATH:-}"
 fi
+
+echo
+echo "== Open-source acknowledgment consumer contract =="
+ACK_ROOT="/usr/share/doc/scad-toolchain"
+ACK_OUT="${OUT}/compliance"
+
+for name in \
+  OPEN_SOURCE_ACKNOWLEDGMENTS.txt \
+  OPEN_SOURCE_ACKNOWLEDGMENTS.pdf \
+  DIRECT_LICENSE_FILES.txt \
+  DEBIAN_PACKAGES.txt \
+  PYTHON_DISTRIBUTIONS.txt
+do
+  test -s "${ACK_ROOT}/${name}"
+  cp "${ACK_ROOT}/${name}" "${ACK_OUT}/${name}"
+done
+
+ACK_TXT="${ACK_OUT}/OPEN_SOURCE_ACKNOWLEDGMENTS.txt"
+ACK_PDF="${ACK_OUT}/OPEN_SOURCE_ACKNOWLEDGMENTS.pdf"
+ACK_INDEX="${ACK_OUT}/DIRECT_LICENSE_FILES.txt"
+DEBIAN_INVENTORY="${ACK_OUT}/DEBIAN_PACKAGES.txt"
+PYTHON_INVENTORY="${ACK_OUT}/PYTHON_DISTRIBUTIONS.txt"
+
+grep -Fq 'SCAD TOOLCHAIN - OPEN SOURCE ACKNOWLEDGMENTS' "${ACK_TXT}"
+grep -Fq "Runtime profile   : ${PROFILE}" "${ACK_TXT}"
+grep -Fq 'Toolchain release : 0.5.2' "${ACK_TXT}"
+
+head -c 8 "${ACK_PDF}" | grep -Fq '%PDF-1.4'
+tail -c 96 "${ACK_PDF}" | grep -Fq '%%EOF'
+
+for component in \
+  OpenSCAD \
+  BOSL2 \
+  openscad-new-dimensions \
+  openscad_docsgen \
+  Pillow \
+  SCons
+do
+  grep -Fxq "${component}" "${ACK_INDEX}"
+done
+
+grep -Eq '^openscad-nightly[[:space:]]' "${DEBIAN_INVENTORY}"
+grep -Eiq '^Pillow[[:space:]]' "${PYTHON_INVENTORY}"
+grep -Eiq '^SCons[[:space:]]' "${PYTHON_INVENTORY}"
+grep -Eiq '^openscad[-_]docsgen[[:space:]]' "${PYTHON_INVENTORY}"
+
+if [[ "$PROFILE" == "full" ]]; then
+  for component in PythonSCAD pybosl2 Shapely; do
+    grep -Fxq "${component}" "${ACK_INDEX}"
+  done
+  grep -Eiq '^pybosl2[[:space:]]' "${PYTHON_INVENTORY}"
+  grep -Eiq '^Shapely[[:space:]]' "${PYTHON_INVENTORY}"
+else
+  if grep -Eq '^(PythonSCAD|pybosl2|Shapely)
+GIT_TEST_DIR="$(mktemp -d)"
+git -C "$GIT_TEST_DIR" init -q
+git -C "$GIT_TEST_DIR" config user.name "SCAD Toolchain Test"
+git -C "$GIT_TEST_DIR" config user.email "scad-toolchain-test@example.invalid"
+printf 'SCAD toolchain Git smoke test\n' > "$GIT_TEST_DIR/test.txt"
+git -C "$GIT_TEST_DIR" add test.txt
+git -C "$GIT_TEST_DIR" commit -q -m "Git smoke test"
+git -C "$GIT_TEST_DIR" rev-parse --verify HEAD >/dev/null
+rm -rf "$GIT_TEST_DIR"
+
+# -------------------------------------------------------------------
+# 2. Base functionality
+# -------------------------------------------------------------------
+
+run_checked "OpenSCAD PNG" \
+  xvfb-run -a openscad \
+    --render \
+    --imgsize=800,600 \
+    -o "${OUT}/openscad/smoke.png" \
+    "${ROOT}/test/openscad/smoke.scad"
+test -s "${OUT}/openscad/smoke.png"
+
+run_checked "Image watermark" \
+  scad-image-watermark \
+    "${OUT}/openscad/smoke.png" \
+    "${OUT}/watermark/openscad-smoke-watermarked.png" \
+    --text "© 2026 brainboxemb"
+
+test -s "${OUT}/watermark/openscad-smoke-watermarked.png"
+if cmp -s "${OUT}/openscad/smoke.png" "${OUT}/watermark/openscad-smoke-watermarked.png"; then
+  echo "ERROR: watermark output is identical to its input." >&2
+  exit 1
+fi
+
+python3 - "${OUT}/watermark/openscad-smoke-watermarked.png" <<'PY'
+from pathlib import Path
+import sys
+from PIL import Image
+
+path = Path(sys.argv[1])
+with Image.open(path) as image:
+    assert image.format == "PNG"
+    assert image.size == (800, 600)
+print("External watermark consumer output validated")
+PY
+
+run_checked "OpenSCAD STL" \
+  openscad \
+    -o "${OUT}/openscad/smoke.stl" \
+    "${ROOT}/test/openscad/smoke.scad"
+test -s "${OUT}/openscad/smoke.stl"
+
+if [[ "$PROFILE" == "full" ]]; then
+  run_checked "PythonSCAD PNG" \
+    xvfb-run -a pythonscad \
+      --render \
+      --imgsize=800,600 \
+      -o "${OUT}/pythonscad/smoke.png" \
+      --trust-python \
+      "${ROOT}/test/pythonscad/smoke.py"
+  test -s "${OUT}/pythonscad/smoke.png"
+
+  run_checked "PythonSCAD STL" \
+    xvfb-run -a pythonscad \
+      -o "${OUT}/pythonscad/smoke.stl" \
+      --trust-python \
+      "${ROOT}/test/pythonscad/smoke.py"
+  test -s "${OUT}/pythonscad/smoke.stl"
+fi
+
+# -------------------------------------------------------------------
+# 3. Additional runtime tests
+# -------------------------------------------------------------------
+
+echo
+echo "== SCons -> OpenSCAD =="
+SCAD_TOOLCHAIN_TEST_OUT="$OUT" bash "$ROOT/scripts/test-scons.sh"
+
+if [[ "$PROFILE" == "full" ]]; then
+  echo
+  echo "== PythonSCAD -D define test =="
+  bash "$ROOT/scripts/test-pythonscad-defines.sh"
+
+  echo
+  echo "== PythonSCAD embedded sys.path probe =="
+  run_checked "PythonSCAD sys.path probe" \
+    xvfb-run -a pythonscad \
+      -o "${OUT}/pythonscad/path-probe.stl" \
+      --trust-python \
+      "${ROOT}/test/pythonscad/python_path_probe.py"
+  test -s "${OUT}/pythonscad/path-probe.stl"
+fi
+
+# -------------------------------------------------------------------
+# 4. Documentation tooling
+# -------------------------------------------------------------------
+
+echo
+echo "== OpenSCAD documentation tooling =="
+
+command -v openscad-docsgen >/dev/null
+command -v openscad-mdimggen >/dev/null
+
+DOCSGEN_WORK="${OUT}/docsgen"
+DOCSGEN_SOURCE="${DOCSGEN_WORK}/docsgen.scad"
+DOCSGEN_GENERATED="${DOCSGEN_SOURCE}.md"
+
+cp "${ROOT}/test/docsgen/docsgen.scad" "${DOCSGEN_SOURCE}"
+
+run_checked "openscad-docsgen lint/parse" \
+  openscad-docsgen \
+    -m \
+    -T \
+    "${DOCSGEN_SOURCE}"
+
+rm -f "${DOCSGEN_GENERATED}"
+run_checked "openscad-docsgen Markdown generation" \
+  openscad-docsgen \
+    -m \
+    "${DOCSGEN_SOURCE}"
+
+test -s "${DOCSGEN_GENERATED}"
+grep -q "docsgen_consumer_smoke" "${DOCSGEN_GENERATED}"
+
+echo "openscad-docsgen external consumer test passed"
+
+# -------------------------------------------------------------------
+# 5. Library / interoperability
+# -------------------------------------------------------------------
+
+echo
+echo "== OpenSCAD -> openscad-new-dimensions SVG =="
+
+DIMENSIONS_LOG="$(mktemp)"
+set +e
+openscad \
+  -D 'DIMENSION_RENDER_MODE="2D"' \
+  -o "${OUT}/dimensions/demo.svg" \
+  "${ROOT}/test/openscad/dimensions.scad" \
+  2>&1 | tee "${DIMENSIONS_LOG}"
+DIMENSIONS_STATUS=${PIPESTATUS[0]}
+set -e
+
+if (( DIMENSIONS_STATUS != 0 )); then
+  echo "ERROR: OpenSCAD -> openscad-new-dimensions SVG failed with exit code ${DIMENSIONS_STATUS}" >&2
+  echo
+  echo "== Installed dimension-library parser context =="
+  if [[ -f "${OPENSCAD_NEW_DIMENSIONS_ROOT}/line.scad" ]]; then
+    nl -ba "${OPENSCAD_NEW_DIMENSIONS_ROOT}/line.scad" | sed -n '18,36p'
+  fi
+  echo
+  echo "== Installed upstream demo entrypoint =="
+  nl -ba "${OPENSCAD_NEW_DIMENSIONS_ROOT}/demo/demo.scad" | sed -n '1,120p'
+  rm -f "${DIMENSIONS_LOG}"
+  exit "${DIMENSIONS_STATUS}"
+fi
+
+if grep -Eq '(^|[[:space:]])ERROR:' "${DIMENSIONS_LOG}"; then
+  echo "ERROR: dimension SVG generation reported ERROR: in its log" >&2
+  rm -f "${DIMENSIONS_LOG}"
+  exit 1
+fi
+rm -f "${DIMENSIONS_LOG}"
+
+test -s "${OUT}/dimensions/demo.svg"
+grep -qi '<svg' "${OUT}/dimensions/demo.svg"
+
+run_checked "OpenSCAD -> BOSL2 PNG" \
+  xvfb-run -a openscad \
+    --render \
+    --imgsize=800,600 \
+    -o "${OUT}/bosl2-openscad/model.png" \
+    "${ROOT}/test/openscad/bosl2.scad"
+test -s "${OUT}/bosl2-openscad/model.png"
+
+run_checked "OpenSCAD -> BOSL2 STL" \
+  openscad \
+    -o "${OUT}/bosl2-openscad/model.stl" \
+    "${ROOT}/test/openscad/bosl2.scad"
+test -s "${OUT}/bosl2-openscad/model.stl"
+
+if [[ "$PROFILE" == "full" ]]; then
+  run_checked "PythonSCAD -> pybosl2 PNG" \
+    xvfb-run -a pythonscad \
+      --render \
+      --imgsize=800,600 \
+      -o "${OUT}/bosl2-pythonscad-py/model.png" \
+      --trust-python \
+      "${ROOT}/test/pythonscad/pybosl2_consumer.py"
+  test -s "${OUT}/bosl2-pythonscad-py/model.png"
+
+  run_checked "PythonSCAD -> pybosl2 STL" \
+    xvfb-run -a pythonscad \
+      -o "${OUT}/bosl2-pythonscad-py/model.stl" \
+      --trust-python \
+      "${ROOT}/test/pythonscad/pybosl2_consumer.py"
+  test -s "${OUT}/bosl2-pythonscad-py/model.stl"
+
+  run_expected_failure \
+    "PythonSCAD -> BOSL2 SCAD (expected incompatibility)" \
+    "BOSL2 requires OpenSCAD version 2021.01 or later." \
+    xvfb-run -a pythonscad \
+      -o "${OUT}/bosl2-pythonscad-scad/xfail.stl" \
+      --trust-python \
+      "${ROOT}/test/pythonscad/bosl2_scad.py"
+
+  run_expected_failure \
+    "PythonSCAD -> OpenSCAD object() (expected incompatibility)" \
+    "PYTHONSCAD_OPENSCAD_OBJECT_XFAIL" \
+    env \
+      OPENSCAD_OBJECT_PROBE_SCAD="${ROOT}/test/pythonscad/openscad_object/object_api.scad" \
+      xvfb-run -a pythonscad \
+        --enable=object-function \
+        -o "${OUT}/pythonscad-openscad-object/xfail.stl" \
+        --trust-python \
+        "${ROOT}/test/pythonscad/openscad_object/object_bridge_probe.py"
+fi
+
+echo
+echo "SCAD toolchain consumer tests passed for ${PROFILE}; documented full-runtime XFAILs matched expectations where applicable."
+ "${ACK_INDEX}"; then
+    echo "ERROR: OpenSCAD profile direct-license index contains full-runtime-only components." >&2
+    exit 1
+  fi
+fi
+
+echo "Open-source acknowledgment consumer contract passed for ${PROFILE}"
 
 echo
 echo "== Git functional smoke test =="

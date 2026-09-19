@@ -75,6 +75,16 @@ Likewise, a shared OpenSCAD library being installed is not enough: exercise it
 through a consumer source and require a representative generated output when
 that can be done deterministically.
 
+## Open-source distribution-document coverage
+
+The acknowledgment TXT/PDF and package/license inventories are public runtime
+artifacts. External coverage must validate their content against the runtime
+profile rather than checking only that files exist.
+
+Retain the exact documents in test output and link them from the generated
+report. A missing direct component/license entry is a runtime contract failure;
+do not weaken the test to make a release green.
+
 ## BOSL2 / pybosl2 coverage
 
 Maintain the three distinct routes:
