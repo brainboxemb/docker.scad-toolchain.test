@@ -30,6 +30,7 @@
     <tr><th>Capability</th><th>OpenSCAD runtime</th><th>Full runtime</th></tr>
     <tr><td>OpenSCAD PNG/STL</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
     <tr><td>OpenSCAD → BOSL2</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+    <tr><td>OpenSCAD → openscad-new-dimensions SVG</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
     <tr><td>SCons → OpenSCAD</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
     <tr><td>docsgen/mdimggen</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
     <tr><td>watermark/Pillow</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
@@ -43,10 +44,10 @@
   <h2>Exact runtime inputs</h2>
   <table>
     <tr><th>Test suite</th><td><code>latest</code></td></tr>
-    <tr><th>Toolchain version/tag</th><td><code>v0.5.0</code></td></tr>
-    <tr><th>OpenSCAD image</th><td><code>ghcr.io/brainboxemb/scad-toolchain-openscad:v0.5.0</code></td></tr>
-    <tr><th>Full image</th><td><code>ghcr.io/brainboxemb/scad-toolchain:v0.5.0</code></td></tr>
-    <tr><th>OpenSCAD</th><td>OpenSCAD version 2026.09.12.nightly</td></tr>
+    <tr><th>Toolchain version/tag</th><td><code>v0.5.1</code></td></tr>
+    <tr><th>OpenSCAD image</th><td><code>ghcr.io/brainboxemb/scad-toolchain-openscad:v0.5.1</code></td></tr>
+    <tr><th>Full image</th><td><code>ghcr.io/brainboxemb/scad-toolchain:v0.5.1</code></td></tr>
+    <tr><th>OpenSCAD</th><td>OpenSCAD version 2026.09.17.nightly</td></tr>
     <tr><th>PythonSCAD (full)</th><td>PythonSCAD version 1.1.2</td></tr>
     <tr><th>Python</th><td>Python 3.12.3</td></tr>
     <tr><th>Git</th><td>git version 2.43.0</td></tr>
@@ -54,6 +55,7 @@
     <tr><th>openscad_docsgen</th><td>2.0.55</td></tr>
     <tr><th>Pillow</th><td>12.3.0</td></tr>
     <tr><th>BOSL2</th><td>v2.0.752</td></tr>
+    <tr><th>openscad-new-dimensions</th><td><code>d37828e26df6067fbd872e8e291c6b0b19298243</code></td></tr>
     <tr><th>pybosl2 (full)</th><td>0.6.7</td></tr>
   </table>
 
@@ -66,8 +68,8 @@
     or shared-layer reuse. Independent cold-pull benchmarking is kept out of
     routine CI to avoid deliberately deleting and redownloading shared data.
   </p>
-  <pre>openscad pull_mode=fresh-runner image=ghcr.io/brainboxemb/scad-toolchain-openscad:v0.5.0 pull_ms=13531 compressed_bytes=328096891 unpacked_bytes=961779232
-full pull_mode=shared-layer-reuse image=ghcr.io/brainboxemb/scad-toolchain:v0.5.0 pull_ms=3885 compressed_bytes=449515227 unpacked_bytes=1313898129</pre>
+  <pre>openscad pull_mode=fresh-runner image=ghcr.io/brainboxemb/scad-toolchain-openscad:v0.5.1 pull_ms=12059 compressed_bytes=330558358 unpacked_bytes=969531328
+full pull_mode=shared-layer-reuse image=ghcr.io/brainboxemb/scad-toolchain:v0.5.1 pull_ms=3831 compressed_bytes=451977113 unpacked_bytes=1321651840</pre>
   <p><a href="image-metrics.txt">Raw image metrics</a></p>
 
   <h2>Shared OpenSCAD evidence</h2>
@@ -98,6 +100,23 @@ full pull_mode=shared-layer-reuse image=ghcr.io/brainboxemb/scad-toolchain:v0.5.
   <div class="comparison">
     <img src="openscad/bosl2-openscad/model.png" alt="OpenSCAD runtime BOSL2 render">
     <img src="full/bosl2-openscad/model.png" alt="Full runtime BOSL2 render">
+  </div>
+
+  <h3>OpenSCAD → openscad-new-dimensions</h3>
+  <p>
+    Each runtime resolves the installed dimensioning library through the normal
+    OpenSCAD library path, selects the pinned upstream demo's native 2D mode and exports it through a
+    suite-owned consumer wrapper.
+  </p>
+  <div class="comparison">
+    <div>
+      <img src="openscad/dimensions/demo.svg" alt="OpenSCAD runtime dimensioned SVG">
+      <p><a href="openscad/dimensions/demo.svg">OpenSCAD profile SVG</a></p>
+    </div>
+    <div>
+      <img src="full/dimensions/demo.svg" alt="Full runtime dimensioned SVG">
+      <p><a href="full/dimensions/demo.svg">Full profile SVG</a></p>
+    </div>
   </div>
 
   <h2>Full-runtime PythonSCAD evidence</h2>
