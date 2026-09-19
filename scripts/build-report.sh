@@ -18,6 +18,7 @@ SCONS_VERSION_INFO="$(python3 -c 'import SCons; print(SCons.__version__)')"
 DOCSGEN_VERSION="$(python3 -c 'import importlib.metadata as m; print(m.version("openscad_docsgen"))')"
 PILLOW_VERSION_INFO="$(python3 -c 'import importlib.metadata as m; print(m.version("Pillow"))')"
 BOSL2_VERSION_INFO="${BOSL2_VERSION:-unknown}"
+DIMENSIONS_VERSION_INFO="${OPENSCAD_NEW_DIMENSIONS_COMMIT:-unknown}"
 PYBOSL2_VERSION_INFO="${PYBOSL2_VERSION:-unknown}"
 
 rm -rf "${SITE}"
@@ -61,6 +62,7 @@ cat > "${SITE}/index.html" <<EOF
     <tr><th>Capability</th><th>OpenSCAD runtime</th><th>Full runtime</th></tr>
     <tr><td>OpenSCAD PNG/STL</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
     <tr><td>OpenSCAD → BOSL2</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+    <tr><td>OpenSCAD → openscad-new-dimensions SVG</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
     <tr><td>SCons → OpenSCAD</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
     <tr><td>docsgen/mdimggen</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
     <tr><td>watermark/Pillow</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
@@ -85,6 +87,7 @@ cat > "${SITE}/index.html" <<EOF
     <tr><th>openscad_docsgen</th><td>${DOCSGEN_VERSION}</td></tr>
     <tr><th>Pillow</th><td>${PILLOW_VERSION_INFO}</td></tr>
     <tr><th>BOSL2</th><td>v${BOSL2_VERSION_INFO}</td></tr>
+    <tr><th>openscad-new-dimensions</th><td><code>${DIMENSIONS_VERSION_INFO}</code></td></tr>
     <tr><th>pybosl2 (full)</th><td>${PYBOSL2_VERSION_INFO}</td></tr>
   </table>
 
@@ -128,6 +131,23 @@ cat > "${SITE}/index.html" <<EOF
   <div class="comparison">
     <img src="openscad/bosl2-openscad/model.png" alt="OpenSCAD runtime BOSL2 render">
     <img src="full/bosl2-openscad/model.png" alt="Full runtime BOSL2 render">
+  </div>
+
+  <h3>OpenSCAD → openscad-new-dimensions</h3>
+  <p>
+    Each runtime resolves the installed dimensioning library through the normal
+    OpenSCAD library path, selects the pinned upstream demo's native 2D mode and exports it through a
+    suite-owned consumer wrapper.
+  </p>
+  <div class="comparison">
+    <div>
+      <img src="openscad/dimensions/demo.svg" alt="OpenSCAD runtime dimensioned SVG">
+      <p><a href="openscad/dimensions/demo.svg">OpenSCAD profile SVG</a></p>
+    </div>
+    <div>
+      <img src="full/dimensions/demo.svg" alt="Full runtime dimensioned SVG">
+      <p><a href="full/dimensions/demo.svg">Full profile SVG</a></p>
+    </div>
   </div>
 
   <h2>Full-runtime PythonSCAD evidence</h2>

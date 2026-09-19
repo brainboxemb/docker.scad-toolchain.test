@@ -71,6 +71,9 @@ example, watermark verification must invoke `scad-image-watermark` rather than
 importing its implementation.
 
 A command existing is not enough when a practical consumer test is possible.
+Likewise, a shared OpenSCAD library being installed is not enough: exercise it
+through a consumer source and require a representative generated output when
+that can be done deterministically.
 
 ## BOSL2 / pybosl2 coverage
 

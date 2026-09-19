@@ -18,7 +18,34 @@ not release-history entries here.
 
 | Test-suite version | Main change |
 | --- | --- |
+| `v0.5.1` | Functional external consumer coverage for `openscad-new-dimensions` SVG drawings |
 | `v0.5.0` | Profile-aware external validation for the OpenSCAD-focused and full runtime image family |
+
+## v0.5.1
+
+### Added
+
+- Public-path and exact-commit checks for the installed
+  `openscad-new-dimensions` library in both runtime profiles.
+- A suite-owned OpenSCAD consumer wrapper that resolves the pinned library and
+  executes its real dimensioning demo in the upstream 2D render mode used for SVG export.
+- Non-empty SVG export assertions plus retained SVG evidence in the combined
+  HTML report.
+
+### Versioning note
+
+`test-v0.5.0-toolchain-v0.5.1` remains valid evidence for the unchanged
+v0.5.0 suite contract. It does **not** retroactively prove the new dimension
+consumer path because that test did not exist in v0.5.0.
+
+Adding that functional coverage changes suite behavior, so the test-suite
+version advances to v0.5.1.
+
+### Qualification target
+
+```text
+test-v0.5.1-toolchain-v0.5.1
+```
 
 ## v0.5.0
 
@@ -46,8 +73,8 @@ releases:
 | `test-v0.5.0-toolchain-v0.5.1` | PASS |
 
 The `v0.5.1` toolchain qualification reuses the unchanged `v0.5.0` test-suite
-source and verifies the published immutable runtime images rather than creating
-an artificial new suite version.
+source and proves that the newer runtime still satisfies the v0.5.0 contract.
+The dedicated external dimension-library coverage begins with suite v0.5.1.
 
 ## Earlier immutable records
 

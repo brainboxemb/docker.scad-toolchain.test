@@ -19,6 +19,7 @@ mkdir -p \
   "${OUT}/docsgen" \
   "${OUT}/watermark" \
   "${OUT}/scons" \
+  "${OUT}/dimensions" \
   "${OUT}/bosl2-openscad"
 
 if [[ "$PROFILE" == "full" ]]; then
@@ -118,11 +119,18 @@ echo
 echo "== Environment library paths =="
 printf 'OPENSCADPATH=%s\n' "${OPENSCADPATH:-<unset>}"
 printf 'BOSL2_ROOT=%s\n' "${BOSL2_ROOT:-<unset>}"
+printf 'OPENSCAD_NEW_DIMENSIONS_ROOT=%s\n' "${OPENSCAD_NEW_DIMENSIONS_ROOT:-<unset>}"
+printf 'OPENSCAD_NEW_DIMENSIONS_COMMIT=%s\n' "${OPENSCAD_NEW_DIMENSIONS_COMMIT:-<unset>}"
 printf 'PYTHONPATH=%s\n' "${PYTHONPATH:-<unset>}"
 
 test -n "${BOSL2_ROOT:-}"
 test -f "${BOSL2_ROOT}/std.scad"
 test -f "${BOSL2_ROOT}/shapes3d.scad"
+test -n "${OPENSCAD_NEW_DIMENSIONS_ROOT:-}"
+test -n "${OPENSCAD_NEW_DIMENSIONS_COMMIT:-}"
+[[ "${OPENSCAD_NEW_DIMENSIONS_COMMIT}" =~ ^[0-9a-f]{40}$ ]]
+test -f "${OPENSCAD_NEW_DIMENSIONS_ROOT}/dimensions.scad"
+test -f "${OPENSCAD_NEW_DIMENSIONS_ROOT}/demo/demo.scad"
 if [[ "$PROFILE" == "full" ]]; then
   test -n "${PYTHONPATH:-}"
 fi
@@ -258,6 +266,43 @@ echo "openscad-docsgen external consumer test passed"
 # -------------------------------------------------------------------
 # 5. Library / interoperability
 # -------------------------------------------------------------------
+
+echo
+echo "== OpenSCAD -> openscad-new-dimensions SVG =="
+
+DIMENSIONS_LOG="$(mktemp)"
+set +e
+openscad \
+  -D 'DIMENSION_RENDER_MODE="2D"' \
+  -o "${OUT}/dimensions/demo.svg" \
+  "${ROOT}/test/openscad/dimensions.scad" \
+  2>&1 | tee "${DIMENSIONS_LOG}"
+DIMENSIONS_STATUS=${PIPESTATUS[0]}
+set -e
+
+if (( DIMENSIONS_STATUS != 0 )); then
+  echo "ERROR: OpenSCAD -> openscad-new-dimensions SVG failed with exit code ${DIMENSIONS_STATUS}" >&2
+  echo
+  echo "== Installed dimension-library parser context =="
+  if [[ -f "${OPENSCAD_NEW_DIMENSIONS_ROOT}/line.scad" ]]; then
+    nl -ba "${OPENSCAD_NEW_DIMENSIONS_ROOT}/line.scad" | sed -n '18,36p'
+  fi
+  echo
+  echo "== Installed upstream demo entrypoint =="
+  nl -ba "${OPENSCAD_NEW_DIMENSIONS_ROOT}/demo/demo.scad" | sed -n '1,120p'
+  rm -f "${DIMENSIONS_LOG}"
+  exit "${DIMENSIONS_STATUS}"
+fi
+
+if grep -Eq '(^|[[:space:]])ERROR:' "${DIMENSIONS_LOG}"; then
+  echo "ERROR: dimension SVG generation reported ERROR: in its log" >&2
+  rm -f "${DIMENSIONS_LOG}"
+  exit 1
+fi
+rm -f "${DIMENSIONS_LOG}"
+
+test -s "${OUT}/dimensions/demo.svg"
+grep -qi '<svg' "${OUT}/dimensions/demo.svg"
 
 run_checked "OpenSCAD -> BOSL2 PNG" \
   xvfb-run -a openscad \
