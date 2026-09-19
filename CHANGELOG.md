@@ -18,9 +18,28 @@ not release-history entries here.
 
 | Test-suite version | Main change |
 | --- | --- |
+| `v0.6.1` | Report drawing dependencies/image size and qualify drawsvg composition |
 | `v0.6.0` | Three-profile qualification with code-driven Inkscape drawing publication |
 | `v0.5.1` | Functional external consumer coverage for `openscad-new-dimensions` SVG drawings |
 | `v0.5.0` | Profile-aware external validation for the OpenSCAD-focused and full runtime image family |
+
+## v0.6.1
+
+### Changed
+
+- Add the drawing runtime's Inkscape and drawsvg versions, plus the full
+  runtime's Shapely version, to the existing runtime-version list.
+- Replace the raw ElementTree drawing fixture with readable drawsvg authoring;
+  the suite-owned Python script also invokes Inkscape for PNG/PDF export.
+- Add compressed Docker image size per profile to the existing profile summary.
+- Retain each profile's `scad-toolchain-info` output as source evidence for
+  profile-specific version reporting.
+
+### Qualification target
+
+```text
+test-v0.6.1-toolchain-v0.6.1
+```
 
 ## v0.6.0
 

@@ -103,7 +103,8 @@ run_expected_failure() {
 # -------------------------------------------------------------------
 
 echo "== Toolchain information (${PROFILE}) =="
-scad-toolchain-info
+scad-toolchain-info | tee "${OUT}/toolchain-info.txt"
+test -s "${OUT}/toolchain-info.txt"
 
 echo
 echo "== Public commands =="
@@ -116,11 +117,13 @@ command -v openscad-mdimggen
 command -v scad-image-watermark
 if [[ "$PROFILE" == "drawing" ]]; then
   command -v inkscape
+  python3 -c 'import drawsvg, importlib.metadata as m; print("drawsvg " + m.version("drawsvg"))'
 else
   if command -v inkscape >/dev/null 2>&1; then
     echo "ERROR: Inkscape must remain isolated to the drawing runtime." >&2
     exit 1
   fi
+  python3 -c 'import importlib.util; assert importlib.util.find_spec("drawsvg") is None'
 fi
 if [[ "$PROFILE" == "full" ]]; then
   command -v pythonscad
@@ -282,25 +285,15 @@ if [[ "$PROFILE" == "drawing" ]]; then
   test -s "${OUT}/drawing/source.svg"
   grep -qi '<svg' "${OUT}/drawing/source.svg"
 
-  run_checked "Python SVG composition" \
+  run_checked "Python drawsvg composition + Inkscape export" \
     python3 \
       "${ROOT}/test/drawing/compose_svg.py" \
       "${OUT}/drawing/source.svg" \
-      "${OUT}/drawing/composed-a4.svg"
+      "${OUT}/drawing/composed-a4.svg" \
+      --png "${OUT}/drawing/composed-a4.png" \
+      --pdf "${OUT}/drawing/composed-a4.pdf"
   test -s "${OUT}/drawing/composed-a4.svg"
   grep -q 'SCAD DRAWING PROFILE' "${OUT}/drawing/composed-a4.svg"
-
-  run_checked "Inkscape PNG export" \
-    inkscape "${OUT}/drawing/composed-a4.svg" \
-      --export-area-page \
-      --export-type=png \
-      --export-filename="${OUT}/drawing/composed-a4.png"
-
-  run_checked "Inkscape PDF export" \
-    inkscape "${OUT}/drawing/composed-a4.svg" \
-      --export-area-page \
-      --export-type=pdf \
-      --export-filename="${OUT}/drawing/composed-a4.pdf"
 
   python3 - "${OUT}/drawing/composed-a4.png" "${OUT}/drawing/composed-a4.pdf" <<'PY'
 from pathlib import Path
