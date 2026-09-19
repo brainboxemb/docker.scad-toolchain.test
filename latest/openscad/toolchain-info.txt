@@ -1,0 +1,21 @@
+SCAD toolchain
+==============
+Profile    : openscad
+Toolchain  : 0.6.1
+OpenSCAD   : OpenSCAD version 2026.09.17.nightly
+PythonSCAD : not installed
+Python     : Python 3.12.3
+Git        : git version 2.43.0
+SCons      : 4.11.1
+Inkscape   : not installed
+drawsvg    : not installed
+BOSL2      : v2.0.752
+pybosl2    : not installed
+Shapely    : not installed
+docsgen    : 2.0.55
+Pillow     : 12.3.0
+OPENSCADPATH: /opt/openscad-libraries
+BOSL2_ROOT  : /opt/openscad-libraries/BOSL2
+PYTHONPATH : <unset>
+Acknowledgments TXT: /usr/share/doc/scad-toolchain/OPEN_SOURCE_ACKNOWLEDGMENTS.txt
+Acknowledgments PDF: /usr/share/doc/scad-toolchain/OPEN_SOURCE_ACKNOWLEDGMENTS.pdf
