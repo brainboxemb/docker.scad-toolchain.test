@@ -22,7 +22,9 @@ mkdir -p \
   "${OUT}/bosl2-openscad"
 
 if [[ "$PROFILE" == "drawing" ]]; then
-  mkdir -p "${OUT}/drawing"
+  mkdir -p \
+    "${OUT}/drawing" \
+    "${OUT}/freecad-hlr"
 fi
 
 if [[ "$PROFILE" == "full" ]]; then
@@ -117,10 +119,16 @@ command -v openscad-mdimggen
 command -v scad-image-watermark
 if [[ "$PROFILE" == "drawing" ]]; then
   command -v inkscape
+  command -v freecadcmd
+  freecadcmd --version
   python3 -c 'import drawsvg, importlib.metadata as m; print("drawsvg " + m.version("drawsvg"))'
 else
   if command -v inkscape >/dev/null 2>&1; then
     echo "ERROR: Inkscape must remain isolated to the drawing runtime." >&2
+    exit 1
+  fi
+  if command -v freecadcmd >/dev/null 2>&1; then
+    echo "ERROR: FreeCAD must remain isolated to the drawing runtime." >&2
     exit 1
   fi
   python3 -c 'import importlib.util; assert importlib.util.find_spec("drawsvg") is None'
@@ -275,6 +283,21 @@ echo "openscad-docsgen external consumer test passed"
 # -------------------------------------------------------------------
 
 if [[ "$PROFILE" == "drawing" ]]; then
+  echo
+  echo "== OpenSCAD STL -> FreeCAD refined Part -> TechDraw HLR SVG =="
+
+  run_checked "FreeCAD STL-to-HLR projection" \
+    env \
+      FREECAD_HLR_INPUT="${OUT}/openscad/smoke.stl" \
+      FREECAD_HLR_OUT="${OUT}/freecad-hlr/top.svg" \
+      freecadcmd \
+        "${ROOT}/test/drawing/freecad_hlr_from_stl.py"
+
+  test -s "${OUT}/freecad-hlr/top.svg"
+  grep -qi '<svg' "${OUT}/freecad-hlr/top.svg"
+  grep -q 'FREECAD_HLR_CONSUMER' "${OUT}/freecad-hlr/top.svg"
+  grep -Eq 'visible_edges=[1-9][0-9]*' "${OUT}/freecad-hlr/top.svg"
+
   echo
   echo "== OpenSCAD -> scripted SVG composition -> Inkscape PNG/PDF =="
 

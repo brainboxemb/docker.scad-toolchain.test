@@ -33,8 +33,10 @@ Shared contract, tested against all three profiles:
 
 Additional drawing-runtime contract:
 
-- `inkscape` and the `drawsvg` Python package are present only in the drawing profile;
-- OpenSCAD generates source SVG geometry;
+- `inkscape`, `freecadcmd` and the `drawsvg` Python package are present only in the drawing profile;
+- OpenSCAD generates a real STL that FreeCAD imports as mesh geometry;
+- the suite converts that mesh into a refined Part solid and requires TechDraw HLR to emit a top-view SVG with visible edges;
+- OpenSCAD also generates source SVG geometry;
 - suite-owned Python uses drawsvg to compose an annotated A4 SVG;
 - that Python producer invokes Inkscape to export the SVG to valid PNG and PDF.
 
@@ -51,7 +53,7 @@ failure.
 
 ## Current development target
 
-The suite is being advanced for the toolchain v0.6.1 drawing-runtime authoring stack.
+The suite is being advanced for the toolchain v0.7.0 drawing-runtime HLR and publication stack.
 During qualification, the development branch targets the producer's mutable
 `:edge` images:
 
@@ -149,9 +151,21 @@ The suite runs a real docsgen parse and Markdown generation against a consumer
 `.scad` source. The generated Markdown must be non-empty and contain the
 expected module documentation.
 
-## Drawing publication capability
+## Drawing projection and publication capability
 
-The drawing profile validates the intended text/code-driven publication chain:
+The drawing profile validates both the FreeCAD HLR reference path and the
+text/code-driven publication chain:
+
+```text
+OpenSCAD STL
+    -> FreeCAD Mesh
+    -> refined Part solid
+    -> TechDraw HLR
+    -> SVG visible/hidden-edge evidence
+```
+
+Publication remains:
+
 
 ```text
 OpenSCAD geometry/projections

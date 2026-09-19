@@ -62,6 +62,7 @@ format_mib() {
 }
 
 INKSCAPE_VERSION_INFO="$(info_value drawing Inkscape)"
+FREECAD_VERSION_INFO="$(info_value drawing FreeCAD)"
 DRAWSVG_VERSION_INFO="$(info_value drawing drawsvg)"
 SHAPELY_VERSION_INFO="$(info_value full Shapely)"
 
@@ -117,6 +118,7 @@ cat > "${SITE}/index.html" <<EOF
     <tr><td>docsgen/mdimggen</td><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
     <tr><td>watermark/Pillow</td><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
     <tr><td>Inkscape drawing publication</td><td>not installed</td><td class="pass">PASS</td><td>not installed</td></tr>
+    <tr><td>FreeCAD STL → TechDraw HLR</td><td>not installed</td><td class="pass">PASS</td><td>not installed</td></tr>
     <tr><td>Git/tooling basics</td><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
     <tr><td>PythonSCAD PNG/STL</td><td>not required</td><td>not required</td><td class="pass">PASS</td></tr>
     <tr><td>PythonSCAD → pybosl2</td><td>not required</td><td>not required</td><td class="pass">PASS</td></tr>
@@ -137,6 +139,7 @@ cat > "${SITE}/index.html" <<EOF
     <tr><th>Git</th><td>${GIT_VERSION}</td></tr>
     <tr><th>SCons</th><td>${SCONS_VERSION_INFO}</td></tr>
     <tr><th>Inkscape (drawing)</th><td>${INKSCAPE_VERSION_INFO}</td></tr>
+    <tr><th>FreeCAD (drawing)</th><td>${FREECAD_VERSION_INFO}</td></tr>
     <tr><th>drawsvg (drawing)</th><td>${DRAWSVG_VERSION_INFO}</td></tr>
     <tr><th>openscad_docsgen</th><td>${DOCSGEN_VERSION}</td></tr>
     <tr><th>Pillow</th><td>${PILLOW_VERSION_INFO}</td></tr>
@@ -196,12 +199,20 @@ cat > "${SITE}/index.html" <<EOF
     <img src="full/bosl2-openscad/model.png" alt="Full runtime BOSL2 render">
   </div>
 
-  <h2>Drawing-runtime publication evidence</h2>
+  <h2>Drawing-runtime projection and publication evidence</h2>
   <p>
-    OpenSCAD generates the source geometry. A suite-owned Python script uses
-    drawsvg to compose that geometry into an A4 SVG with annotations and a title
-    block, then invokes Inkscape CLI to export the same sheet to PNG and PDF.
+    The drawing runtime consumes a real OpenSCAD-generated STL through FreeCAD,
+    converts the mesh into a refined Part solid and asks TechDraw for a headless
+    HLR top view. Separately, the existing publication path composes OpenSCAD
+    SVG geometry with drawsvg and exports it through Inkscape.
   </p>
+  <div class="comparison">
+    <div>
+      <h3>FreeCAD STL → TechDraw HLR</h3>
+      <img src="drawing/freecad-hlr/top.svg" alt="FreeCAD TechDraw HLR top view from OpenSCAD STL">
+      <p><a href="drawing/freecad-hlr/top.svg">HLR SVG evidence</a></p>
+    </div>
+  </div>
   <div class="comparison">
     <div>
       <img src="drawing/drawing/composed-a4.png" alt="Drawing runtime composed A4 technical drawing">
