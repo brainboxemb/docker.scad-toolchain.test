@@ -267,10 +267,38 @@ echo "openscad-docsgen external consumer test passed"
 # 5. Library / interoperability
 # -------------------------------------------------------------------
 
-run_checked "OpenSCAD -> openscad-new-dimensions SVG" \
-  openscad \
-    -o "${OUT}/dimensions/demo.svg" \
-    "${ROOT}/test/openscad/dimensions.scad"
+echo
+echo "== OpenSCAD -> openscad-new-dimensions SVG =="
+
+DIMENSIONS_LOG="$(mktemp)"
+set +e
+openscad \
+  -o "${OUT}/dimensions/demo.svg" \
+  "${ROOT}/test/openscad/dimensions.scad" \
+  2>&1 | tee "${DIMENSIONS_LOG}"
+DIMENSIONS_STATUS=${PIPESTATUS[0]}
+set -e
+
+if (( DIMENSIONS_STATUS != 0 )); then
+  echo "ERROR: OpenSCAD -> openscad-new-dimensions SVG failed with exit code ${DIMENSIONS_STATUS}" >&2
+  echo
+  echo "== Installed dimension-library parser context =="
+  if [[ -f "${OPENSCAD_NEW_DIMENSIONS_ROOT}/line.scad" ]]; then
+    nl -ba "${OPENSCAD_NEW_DIMENSIONS_ROOT}/line.scad" | sed -n '18,36p'
+  fi
+  echo
+  echo "== Installed upstream demo entrypoint =="
+  nl -ba "${OPENSCAD_NEW_DIMENSIONS_ROOT}/demo/demo.scad" | sed -n '1,120p'
+  rm -f "${DIMENSIONS_LOG}"
+  exit "${DIMENSIONS_STATUS}"
+fi
+
+if grep -Eq '(^|[[:space:]])ERROR:' "${DIMENSIONS_LOG}"; then
+  echo "ERROR: dimension SVG generation reported ERROR: in its log" >&2
+  rm -f "${DIMENSIONS_LOG}"
+  exit 1
+fi
+rm -f "${DIMENSIONS_LOG}"
 
 test -s "${OUT}/dimensions/demo.svg"
 grep -qi '<svg' "${OUT}/dimensions/demo.svg"
