@@ -59,15 +59,18 @@ jobs:
           fi
 
           OPENSCAD_CONTAINER="${SCAD_TOOLCHAIN_OPENSCAD_IMAGE}:${VERSION}"
+          DRAWING_CONTAINER="${SCAD_TOOLCHAIN_DRAWING_IMAGE}:${VERSION}"
           FULL_CONTAINER="${SCAD_TOOLCHAIN_FULL_IMAGE}:${VERSION}"
 
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "suite_version=${SUITE_VERSION}" >> "$GITHUB_OUTPUT"
           echo "openscad_container=${OPENSCAD_CONTAINER}" >> "$GITHUB_OUTPUT"
+          echo "drawing_container=${DRAWING_CONTAINER}" >> "$GITHUB_OUTPUT"
           echo "full_container=${FULL_CONTAINER}" >> "$GITHUB_OUTPUT"
 
           echo "Test suite       : ${SUITE_VERSION}"
           echo "OpenSCAD runtime : ${OPENSCAD_CONTAINER}"
+          echo "Drawing runtime  : ${DRAWING_CONTAINER}"
           echo "Full runtime     : ${FULL_CONTAINER}"
 
       - name: Log in to GHCR
@@ -121,6 +124,47 @@ jobs:
             "$CONTAINER" \
             bash ./scripts/run-tests.sh
 
+      - name: Pull and measure drawing runtime with shared layers retained
+        timeout-minutes: 5
+        shell: bash
+        env:
+          CONTAINER: ${{ steps.config.outputs.drawing_container }}
+        run: |
+          set -euo pipefail
+
+          start="$(date +%s%3N)"
+          docker pull "$CONTAINER"
+          end="$(date +%s%3N)"
+          elapsed=$((end - start))
+          unpacked="$(docker image inspect --format='{{.Size}}' "$CONTAINER")"
+
+          raw="$(docker buildx imagetools inspect --raw "$CONTAINER")"
+          media="$(printf '%s' "$raw" | jq -r '.mediaType // empty')"
+          if [[ "$media" == *image.index* || "$media" == *manifest.list* ]]; then
+            digest="$(printf '%s' "$raw" | jq -r '.manifests[] | select(.platform.os == "linux" and .platform.architecture == "amd64") | .digest' | head -n1)"
+            test -n "$digest"
+            raw="$(docker buildx imagetools inspect --raw "${CONTAINER%@*}@${digest}")"
+          fi
+          compressed="$(printf '%s' "$raw" | jq '[.layers[].size] | add')"
+
+          printf 'drawing pull_mode=shared-layer-reuse image=%s pull_ms=%s compressed_bytes=%s unpacked_bytes=%s\n' \
+            "$CONTAINER" "$elapsed" "$compressed" "$unpacked" \
+            | tee -a out/image-metrics.txt
+
+      - name: Test drawing runtime contract
+        timeout-minutes: 5
+        shell: bash
+        env:
+          CONTAINER: ${{ steps.config.outputs.drawing_container }}
+        run: |
+          docker run --rm \
+            -v "$PWD:/work" \
+            -w /work \
+            -e SCAD_TOOLCHAIN_PROFILE=drawing \
+            -e SCAD_TOOLCHAIN_TEST_OUT=/work/out/drawing-profile \
+            "$CONTAINER" \
+            bash ./scripts/run-tests.sh
+
       - name: Pull and measure full runtime with shared layers retained
         timeout-minutes: 5
         shell: bash
@@ -170,6 +214,7 @@ jobs:
           TEST_SUITE_VERSION: ${{ steps.config.outputs.suite_version }}
           SCAD_TOOLCHAIN_VERSION: ${{ steps.config.outputs.version }}
           OPENSCAD_CONTAINER: ${{ steps.config.outputs.openscad_container }}
+          DRAWING_CONTAINER: ${{ steps.config.outputs.drawing_container }}
           FULL_CONTAINER: ${{ steps.config.outputs.full_container }}
         run: |
           docker run --rm \
@@ -178,6 +223,7 @@ jobs:
             -e TEST_SUITE_VERSION \
             -e SCAD_TOOLCHAIN_VERSION \
             -e OPENSCAD_CONTAINER \
+            -e DRAWING_CONTAINER \
             -e FULL_CONTAINER \
             "$CONTAINER" \
             bash ./scripts/build-report.sh

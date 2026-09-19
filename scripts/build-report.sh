@@ -8,6 +8,7 @@ SITE="${ROOT}/site"
 SUITE_VERSION="${TEST_SUITE_VERSION:-unversioned}"
 TOOLCHAIN_VERSION="${SCAD_TOOLCHAIN_VERSION:-unknown}"
 OPENSCAD_CONTAINER="${OPENSCAD_CONTAINER:-unknown}"
+DRAWING_CONTAINER="${DRAWING_CONTAINER:-unknown}"
 FULL_CONTAINER="${FULL_CONTAINER:-unknown}"
 
 OPENSCAD_VERSION="$(openscad --version 2>&1 | head -n1)"
@@ -18,12 +19,12 @@ SCONS_VERSION_INFO="$(python3 -c 'import SCons; print(SCons.__version__)')"
 DOCSGEN_VERSION="$(python3 -c 'import importlib.metadata as m; print(m.version("openscad_docsgen"))')"
 PILLOW_VERSION_INFO="$(python3 -c 'import importlib.metadata as m; print(m.version("Pillow"))')"
 BOSL2_VERSION_INFO="${BOSL2_VERSION:-unknown}"
-DIMENSIONS_VERSION_INFO="${OPENSCAD_NEW_DIMENSIONS_COMMIT:-unknown}"
 PYBOSL2_VERSION_INFO="${PYBOSL2_VERSION:-unknown}"
 
 rm -rf "${SITE}"
-mkdir -p "${SITE}/openscad" "${SITE}/full"
+mkdir -p "${SITE}/openscad" "${SITE}/drawing" "${SITE}/full"
 cp -a "${OUT}/openscad-profile/." "${SITE}/openscad/"
+cp -a "${OUT}/drawing-profile/." "${SITE}/drawing/"
 cp -a "${OUT}/full-profile/." "${SITE}/full/"
 cp -f "${OUT}/image-metrics.txt" "${SITE}/image-metrics.txt"
 
@@ -52,25 +53,26 @@ cat > "${SITE}/index.html" <<EOF
   <h1>SCAD toolchain runtime-family verification</h1>
 
   <p>
-    One external suite validates two related runtime profiles. Shared OpenSCAD
-    behavior is tested independently in both images; PythonSCAD-specific
-    behavior remains required only from the full runtime.
+    One external suite validates three related runtime profiles. Shared OpenSCAD
+    behavior is tested independently in all three images; drawing publication
+    is isolated to the drawing runtime and PythonSCAD-specific behavior remains
+    required only from the full runtime.
   </p>
 
   <h2>Profile summary</h2>
   <table>
-    <tr><th>Capability</th><th>OpenSCAD runtime</th><th>Full runtime</th></tr>
-    <tr><td>OpenSCAD PNG/STL</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
-    <tr><td>OpenSCAD → BOSL2</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
-    <tr><td>OpenSCAD → openscad-new-dimensions SVG</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
-    <tr><td>SCons → OpenSCAD</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
-    <tr><td>docsgen/mdimggen</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
-    <tr><td>watermark/Pillow</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
-    <tr><td>Git/tooling basics</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
-    <tr><td>PythonSCAD PNG/STL</td><td>not required</td><td class="pass">PASS</td></tr>
-    <tr><td>PythonSCAD → pybosl2</td><td>not required</td><td class="pass">PASS</td></tr>
-    <tr><td>PythonSCAD → BOSL2 .scad</td><td>not required</td><td class="xfail">XFAIL</td></tr>
-    <tr><td>PythonSCAD → OpenSCAD object()</td><td>not required</td><td class="xfail">XFAIL</td></tr>
+    <tr><th>Capability</th><th>OpenSCAD runtime</th><th>Drawing runtime</th><th>Full runtime</th></tr>
+    <tr><td>OpenSCAD PNG/STL</td><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+    <tr><td>OpenSCAD → BOSL2</td><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+    <tr><td>SCons → OpenSCAD</td><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+    <tr><td>docsgen/mdimggen</td><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+    <tr><td>watermark/Pillow</td><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+    <tr><td>Inkscape drawing publication</td><td>not installed</td><td class="pass">PASS</td><td>not installed</td></tr>
+    <tr><td>Git/tooling basics</td><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+    <tr><td>PythonSCAD PNG/STL</td><td>not required</td><td>not required</td><td class="pass">PASS</td></tr>
+    <tr><td>PythonSCAD → pybosl2</td><td>not required</td><td>not required</td><td class="pass">PASS</td></tr>
+    <tr><td>PythonSCAD → BOSL2 .scad</td><td>not required</td><td>not required</td><td class="xfail">XFAIL</td></tr>
+    <tr><td>PythonSCAD → OpenSCAD object()</td><td>not required</td><td>not required</td><td class="xfail">XFAIL</td></tr>
   </table>
 
   <h2>Exact runtime inputs</h2>
@@ -78,6 +80,7 @@ cat > "${SITE}/index.html" <<EOF
     <tr><th>Test suite</th><td><code>${SUITE_VERSION}</code></td></tr>
     <tr><th>Toolchain version/tag</th><td><code>${TOOLCHAIN_VERSION}</code></td></tr>
     <tr><th>OpenSCAD image</th><td><code>${OPENSCAD_CONTAINER}</code></td></tr>
+    <tr><th>Drawing image</th><td><code>${DRAWING_CONTAINER}</code></td></tr>
     <tr><th>Full image</th><td><code>${FULL_CONTAINER}</code></td></tr>
     <tr><th>OpenSCAD</th><td>${OPENSCAD_VERSION}</td></tr>
     <tr><th>PythonSCAD (full)</th><td>${PYTHONSCAD_VERSION}</td></tr>
@@ -87,7 +90,6 @@ cat > "${SITE}/index.html" <<EOF
     <tr><th>openscad_docsgen</th><td>${DOCSGEN_VERSION}</td></tr>
     <tr><th>Pillow</th><td>${PILLOW_VERSION_INFO}</td></tr>
     <tr><th>BOSL2</th><td>v${BOSL2_VERSION_INFO}</td></tr>
-    <tr><th>openscad-new-dimensions</th><td><code>${DIMENSIONS_VERSION_INFO}</code></td></tr>
     <tr><th>pybosl2 (full)</th><td>${PYBOSL2_VERSION_INFO}</td></tr>
   </table>
 
@@ -113,6 +115,13 @@ cat > "${SITE}/index.html" <<EOF
       <p><a href="openscad/docsgen/docsgen.scad.md">Generated docs</a></p>
     </div>
     <div>
+      <h3>Drawing image — same OpenSCAD contract</h3>
+      <img src="drawing/openscad/smoke.png" alt="Drawing runtime OpenSCAD smoke render">
+      <p><a href="drawing/openscad/smoke.stl">Smoke STL</a></p>
+      <p><a href="drawing/scons/smoke.stl">SCons → OpenSCAD STL</a></p>
+      <p><a href="drawing/docsgen/docsgen.scad.md">Generated docs</a></p>
+    </div>
+    <div>
       <h3>Full image — same OpenSCAD contract</h3>
       <img src="full/openscad/smoke.png" alt="Full runtime OpenSCAD smoke render">
       <p><a href="full/openscad/smoke.stl">Smoke STL</a></p>
@@ -124,29 +133,28 @@ cat > "${SITE}/index.html" <<EOF
   <h3>Watermark</h3>
   <div class="comparison">
     <img src="openscad/watermark/openscad-smoke-watermarked.png" alt="OpenSCAD runtime watermarked render">
+    <img src="drawing/watermark/openscad-smoke-watermarked.png" alt="Drawing runtime watermarked render">
     <img src="full/watermark/openscad-smoke-watermarked.png" alt="Full runtime watermarked render">
   </div>
 
   <h3>OpenSCAD → BOSL2</h3>
   <div class="comparison">
     <img src="openscad/bosl2-openscad/model.png" alt="OpenSCAD runtime BOSL2 render">
+    <img src="drawing/bosl2-openscad/model.png" alt="Drawing runtime BOSL2 render">
     <img src="full/bosl2-openscad/model.png" alt="Full runtime BOSL2 render">
   </div>
 
-  <h3>OpenSCAD → openscad-new-dimensions</h3>
+  <h2>Drawing-runtime publication evidence</h2>
   <p>
-    Each runtime resolves the installed dimensioning library through the normal
-    OpenSCAD library path, selects the pinned upstream demo's native 2D mode and exports it through a
-    suite-owned consumer wrapper.
+    OpenSCAD generates the source geometry. A suite-owned Python script composes
+    that geometry into an A4 SVG with annotations and a title block. Inkscape
+    then exports the same composed sheet to PNG and PDF.
   </p>
   <div class="comparison">
     <div>
-      <img src="openscad/dimensions/demo.svg" alt="OpenSCAD runtime dimensioned SVG">
-      <p><a href="openscad/dimensions/demo.svg">OpenSCAD profile SVG</a></p>
-    </div>
-    <div>
-      <img src="full/dimensions/demo.svg" alt="Full runtime dimensioned SVG">
-      <p><a href="full/dimensions/demo.svg">Full profile SVG</a></p>
+      <img src="drawing/drawing/composed-a4.png" alt="Drawing runtime composed A4 technical drawing">
+      <p><a href="drawing/drawing/composed-a4.svg">Composed SVG</a></p>
+      <p><a href="drawing/drawing/composed-a4.pdf">Exported PDF</a></p>
     </div>
   </div>
 
@@ -178,6 +186,7 @@ cat > "${SITE}/index.html" <<EOF
   <h2>Raw profile outputs</h2>
   <ul>
     <li><a href="openscad/">OpenSCAD runtime outputs</a></li>
+    <li><a href="drawing/">Drawing runtime outputs</a></li>
     <li><a href="full/">Full runtime outputs</a></li>
   </ul>
 </body>
