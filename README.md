@@ -43,43 +43,47 @@ failure.
 
 ## Current development target
 
-The current external-suite development target is the released runtime family:
+The released external-suite contract remains **v0.5.1**. It now also qualifies
+the immutable toolchain v0.5.2 runtime family:
 
 ```text
 SCAD_TOOLCHAIN_OPENSCAD_IMAGE=ghcr.io/brainboxemb/scad-toolchain-openscad
 SCAD_TOOLCHAIN_FULL_IMAGE=ghcr.io/brainboxemb/scad-toolchain
-SCAD_TOOLCHAIN_VERSION=v0.5.1
+SCAD_TOOLCHAIN_VERSION=v0.5.2
 ```
 
-Toolchain v0.5.1 added the pinned `openscad-new-dimensions` library. The
-previous immutable record `test-v0.5.0-toolchain-v0.5.1` remains valid for the
-unchanged v0.5.0 suite contract, but it predates a functional external test of
-that new library.
+Toolchain v0.5.2 adds producer-owned open-source acknowledgment/release
+artifacts. That does not change the functional consumer contract of this suite,
+so the suite itself does **not** advance to v0.5.2.
 
-The consumer test added here is a substantive suite change, so the suite
-version advances to v0.5.1 rather than reusing v0.5.0. It validates the public
-library path/commit diagnostics and exports a real dimensioned SVG from both
-runtime profiles.
+The permanent functional qualification record is:
 
-A released test-suite tag never relies on a mutable candidate tag. The encoded
-immutable toolchain version in the test tag wins.
+```text
+test-v0.5.1-toolchain-v0.5.2
+```
+
+The earlier `test-v0.5.1-toolchain-v0.5.1` record remains immutable historical
+evidence for toolchain v0.5.1.
 
 ## Release gate at a glance
 
-For the dimension-library consumer qualification:
+When a toolchain release changes only producer/release behavior and leaves the
+functional consumer contract unchanged, reuse the latest released suite version:
 
 ```text
-toolchain v0.5.1 already published
+toolchain candidate / :edge
     ↓
-suite v0.5.1 PR/main test against v0.5.1 green
+released suite v0.5.1 against :edge green
     ↓
-test-v0.5.1-toolchain-v0.5.1 green
-    = immutable runtime pair + dimension consumer test verified
-    = permanent Pages evidence published
+toolchain v0.5.2 immutable images
+    ↓
+released suite v0.5.1 against exact v0.5.2 green
+    ↓
+test-v0.5.1-toolchain-v0.5.2 green
+    = permanent functional qualification record
 ```
 
-The older `test-v0.5.0-toolchain-v0.5.1` record is not rewritten; it remains
-the historical proof that toolchain v0.5.1 satisfied the older v0.5.0 suite.
+Only a substantive external consumer-test change advances the suite version.
 
 ## Version resolution
 
@@ -89,10 +93,10 @@ Immutable test releases use:
 test-v<test-suite-version>-toolchain-v<toolchain-version>
 ```
 
-For the current dimension-library qualification the intended record is:
+The current record is:
 
 ```text
-test-v0.5.1-toolchain-v0.5.1
+test-v0.5.1-toolchain-v0.5.2
 ```
 
 The workflow resolves runtime versions as follows:
@@ -103,10 +107,10 @@ main / pull request
 
 workflow_dispatch
     -> optional explicit override
-    -> for example edge, sha-eeb40e7 or v0.5.0
+    -> for example edge, sha-eeb40e7 or v0.5.2
 
-tag test-v0.5.0-toolchain-v0.5.0
-    -> automatically v0.5.0
+tag test-v0.5.1-toolchain-v0.5.2
+    -> automatically v0.5.2
 ```
 
 Both runtime package names receive the same resolved version.
@@ -298,23 +302,22 @@ keeps historical reports.
 
 ## Release sequence
 
-For the v0.5.0 runtime family:
+For a toolchain-only release such as v0.5.2, where the external functional
+contract is unchanged:
 
-1. qualify the exact runtime candidate images;
-2. merge the image-family implementation and this profile-aware external suite;
-3. let runtime `main` publish both `:edge` profiles and require external green;
-4. publish immutable toolchain `v0.5.0`;
-5. let the toolchain tag automatically dispatch this suite with
-   `toolchain_version=v0.5.0`;
-6. require that immutable-runtime run to pass;
-7. create the test-suite release with:
-   - suite version `v0.5.0`;
-   - toolchain version `v0.5.0`;
-   - exact verified test-suite source SHA;
-8. require `test-v0.5.0-toolchain-v0.5.0` to pass and publish permanent Pages
+1. qualify the candidate `:edge` images with the latest released suite;
+2. publish immutable toolchain `v0.5.2`;
+3. require the producer-triggered suite run against exact `v0.5.2` to pass;
+4. create the permanent qualification tag using the unchanged released suite
+   source:
+   - suite version `v0.5.1`;
+   - toolchain version `v0.5.2`;
+   - exact released-suite source SHA;
+5. require `test-v0.5.1-toolchain-v0.5.2` to pass and publish permanent Pages
    evidence.
 
-Only after that final record is green should downstream tooling pin v0.5.0.
+Advance the test-suite version only when the external consumer contract itself
+changes.
 
 A failed interoperability test is useful evidence. Do not mask it merely to
 make a release green.

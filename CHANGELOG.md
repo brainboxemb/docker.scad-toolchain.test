@@ -41,11 +41,18 @@ consumer path because that test did not exist in v0.5.0.
 Adding that functional coverage changes suite behavior, so the test-suite
 version advances to v0.5.1.
 
-### Qualification target
+### Immutable qualification records
 
-```text
-test-v0.5.1-toolchain-v0.5.1
-```
+The released v0.5.1 suite has qualified these immutable toolchain releases:
+
+| Qualification tag | Result |
+| --- | --- |
+| `test-v0.5.1-toolchain-v0.5.1` | PASS |
+| `test-v0.5.1-toolchain-v0.5.2` | PASS |
+
+Toolchain v0.5.2 changes producer/release distribution artifacts only; the
+functional external consumer contract is unchanged, so no new suite version is
+created.
 
 ## v0.5.0
 
