@@ -45,10 +45,10 @@
   <h2>Exact runtime inputs</h2>
   <table>
     <tr><th>Test suite</th><td><code>latest</code></td></tr>
-    <tr><th>Toolchain version/tag</th><td><code>v0.6.0</code></td></tr>
-    <tr><th>OpenSCAD image</th><td><code>ghcr.io/brainboxemb/scad-toolchain-openscad:v0.6.0</code></td></tr>
-    <tr><th>Drawing image</th><td><code>ghcr.io/brainboxemb/scad-toolchain-drawing:v0.6.0</code></td></tr>
-    <tr><th>Full image</th><td><code>ghcr.io/brainboxemb/scad-toolchain:v0.6.0</code></td></tr>
+    <tr><th>Toolchain version/tag</th><td><code>edge</code></td></tr>
+    <tr><th>OpenSCAD image</th><td><code>ghcr.io/brainboxemb/scad-toolchain-openscad:edge</code></td></tr>
+    <tr><th>Drawing image</th><td><code>ghcr.io/brainboxemb/scad-toolchain-drawing:edge</code></td></tr>
+    <tr><th>Full image</th><td><code>ghcr.io/brainboxemb/scad-toolchain:edge</code></td></tr>
     <tr><th>OpenSCAD</th><td>OpenSCAD version 2026.09.17.nightly</td></tr>
     <tr><th>PythonSCAD (full)</th><td>PythonSCAD version 1.1.2</td></tr>
     <tr><th>Python</th><td>Python 3.12.3</td></tr>
@@ -69,9 +69,9 @@
     or shared-layer reuse. Independent cold-pull benchmarking is kept out of
     routine CI to avoid deliberately deleting and redownloading shared data.
   </p>
-  <pre>openscad pull_mode=fresh-runner image=ghcr.io/brainboxemb/scad-toolchain-openscad:v0.6.0 pull_ms=48000 compressed_bytes=330608822 unpacked_bytes=969768778
-drawing pull_mode=shared-layer-reuse image=ghcr.io/brainboxemb/scad-toolchain-drawing:v0.6.0 pull_ms=6169 compressed_bytes=383993399 unpacked_bytes=1141600992
-full pull_mode=shared-layer-reuse image=ghcr.io/brainboxemb/scad-toolchain:v0.6.0 pull_ms=7464 compressed_bytes=452147443 unpacked_bytes=1322337198</pre>
+  <pre>openscad pull_mode=fresh-runner image=ghcr.io/brainboxemb/scad-toolchain-openscad:edge pull_ms=14642 compressed_bytes=330606347 unpacked_bytes=969769572
+drawing pull_mode=shared-layer-reuse image=ghcr.io/brainboxemb/scad-toolchain-drawing:edge pull_ms=6572 compressed_bytes=384101178 unpacked_bytes=1141946582
+full pull_mode=shared-layer-reuse image=ghcr.io/brainboxemb/scad-toolchain:edge pull_ms=6370 compressed_bytes=452144721 unpacked_bytes=1322338236</pre>
   <p><a href="image-metrics.txt">Raw image metrics</a></p>
 
   <h2>Shared OpenSCAD evidence</h2>
