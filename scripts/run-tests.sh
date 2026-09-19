@@ -6,7 +6,7 @@ PROFILE="${SCAD_TOOLCHAIN_PROFILE:?SCAD_TOOLCHAIN_PROFILE is required}"
 OUT="${SCAD_TOOLCHAIN_TEST_OUT:-${ROOT}/out/${PROFILE}}"
 
 case "$PROFILE" in
-  openscad|full) ;;
+  openscad|drawing|full) ;;
   *)
     echo "ERROR: unsupported SCAD_TOOLCHAIN_PROFILE=${PROFILE}" >&2
     exit 1
@@ -19,8 +19,11 @@ mkdir -p \
   "${OUT}/docsgen" \
   "${OUT}/watermark" \
   "${OUT}/scons" \
-  "${OUT}/dimensions" \
   "${OUT}/bosl2-openscad"
+
+if [[ "$PROFILE" == "drawing" ]]; then
+  mkdir -p "${OUT}/drawing"
+fi
 
 if [[ "$PROFILE" == "full" ]]; then
   mkdir -p \
@@ -111,6 +114,14 @@ command -v scons
 command -v openscad-docsgen
 command -v openscad-mdimggen
 command -v scad-image-watermark
+if [[ "$PROFILE" == "drawing" ]]; then
+  command -v inkscape
+else
+  if command -v inkscape >/dev/null 2>&1; then
+    echo "ERROR: Inkscape must remain isolated to the drawing runtime." >&2
+    exit 1
+  fi
+fi
 if [[ "$PROFILE" == "full" ]]; then
   command -v pythonscad
 fi
@@ -119,18 +130,11 @@ echo
 echo "== Environment library paths =="
 printf 'OPENSCADPATH=%s\n' "${OPENSCADPATH:-<unset>}"
 printf 'BOSL2_ROOT=%s\n' "${BOSL2_ROOT:-<unset>}"
-printf 'OPENSCAD_NEW_DIMENSIONS_ROOT=%s\n' "${OPENSCAD_NEW_DIMENSIONS_ROOT:-<unset>}"
-printf 'OPENSCAD_NEW_DIMENSIONS_COMMIT=%s\n' "${OPENSCAD_NEW_DIMENSIONS_COMMIT:-<unset>}"
 printf 'PYTHONPATH=%s\n' "${PYTHONPATH:-<unset>}"
 
 test -n "${BOSL2_ROOT:-}"
 test -f "${BOSL2_ROOT}/std.scad"
 test -f "${BOSL2_ROOT}/shapes3d.scad"
-test -n "${OPENSCAD_NEW_DIMENSIONS_ROOT:-}"
-test -n "${OPENSCAD_NEW_DIMENSIONS_COMMIT:-}"
-[[ "${OPENSCAD_NEW_DIMENSIONS_COMMIT}" =~ ^[0-9a-f]{40}$ ]]
-test -f "${OPENSCAD_NEW_DIMENSIONS_ROOT}/dimensions.scad"
-test -f "${OPENSCAD_NEW_DIMENSIONS_ROOT}/demo/demo.scad"
 if [[ "$PROFILE" == "full" ]]; then
   test -n "${PYTHONPATH:-}"
 fi
@@ -264,45 +268,58 @@ grep -q "docsgen_consumer_smoke" "${DOCSGEN_GENERATED}"
 echo "openscad-docsgen external consumer test passed"
 
 # -------------------------------------------------------------------
-# 5. Library / interoperability
+# 5. Drawing publication
 # -------------------------------------------------------------------
 
-echo
-echo "== OpenSCAD -> openscad-new-dimensions SVG =="
-
-DIMENSIONS_LOG="$(mktemp)"
-set +e
-openscad \
-  -D 'DIMENSION_RENDER_MODE="2D"' \
-  -o "${OUT}/dimensions/demo.svg" \
-  "${ROOT}/test/openscad/dimensions.scad" \
-  2>&1 | tee "${DIMENSIONS_LOG}"
-DIMENSIONS_STATUS=${PIPESTATUS[0]}
-set -e
-
-if (( DIMENSIONS_STATUS != 0 )); then
-  echo "ERROR: OpenSCAD -> openscad-new-dimensions SVG failed with exit code ${DIMENSIONS_STATUS}" >&2
+if [[ "$PROFILE" == "drawing" ]]; then
   echo
-  echo "== Installed dimension-library parser context =="
-  if [[ -f "${OPENSCAD_NEW_DIMENSIONS_ROOT}/line.scad" ]]; then
-    nl -ba "${OPENSCAD_NEW_DIMENSIONS_ROOT}/line.scad" | sed -n '18,36p'
-  fi
-  echo
-  echo "== Installed upstream demo entrypoint =="
-  nl -ba "${OPENSCAD_NEW_DIMENSIONS_ROOT}/demo/demo.scad" | sed -n '1,120p'
-  rm -f "${DIMENSIONS_LOG}"
-  exit "${DIMENSIONS_STATUS}"
+  echo "== OpenSCAD -> scripted SVG composition -> Inkscape PNG/PDF =="
+
+  run_checked "OpenSCAD drawing SVG source" \
+    openscad \
+      -o "${OUT}/drawing/source.svg" \
+      "${ROOT}/test/openscad/drawing_source.scad"
+  test -s "${OUT}/drawing/source.svg"
+  grep -qi '<svg' "${OUT}/drawing/source.svg"
+
+  run_checked "Python SVG composition" \
+    python3 \
+      "${ROOT}/test/drawing/compose_svg.py" \
+      "${OUT}/drawing/source.svg" \
+      "${OUT}/drawing/composed-a4.svg"
+  test -s "${OUT}/drawing/composed-a4.svg"
+  grep -q 'SCAD DRAWING PROFILE' "${OUT}/drawing/composed-a4.svg"
+
+  run_checked "Inkscape PNG export" \
+    inkscape "${OUT}/drawing/composed-a4.svg" \
+      --export-area-page \
+      --export-type=png \
+      --export-filename="${OUT}/drawing/composed-a4.png"
+
+  run_checked "Inkscape PDF export" \
+    inkscape "${OUT}/drawing/composed-a4.svg" \
+      --export-area-page \
+      --export-type=pdf \
+      --export-filename="${OUT}/drawing/composed-a4.pdf"
+
+  python3 - "${OUT}/drawing/composed-a4.png" "${OUT}/drawing/composed-a4.pdf" <<'PY'
+from pathlib import Path
+import sys
+from PIL import Image
+
+png = Path(sys.argv[1])
+pdf = Path(sys.argv[2])
+with Image.open(png) as image:
+    assert image.format == "PNG"
+    assert image.width > image.height
+assert pdf.read_bytes().startswith(b"%PDF-")
+print("External drawing publication output validated")
+PY
 fi
 
-if grep -Eq '(^|[[:space:]])ERROR:' "${DIMENSIONS_LOG}"; then
-  echo "ERROR: dimension SVG generation reported ERROR: in its log" >&2
-  rm -f "${DIMENSIONS_LOG}"
-  exit 1
-fi
-rm -f "${DIMENSIONS_LOG}"
-
-test -s "${OUT}/dimensions/demo.svg"
-grep -qi '<svg' "${OUT}/dimensions/demo.svg"
+# -------------------------------------------------------------------
+# 6. Library / interoperability
+# -------------------------------------------------------------------
 
 run_checked "OpenSCAD -> BOSL2 PNG" \
   xvfb-run -a openscad \
@@ -356,4 +373,4 @@ if [[ "$PROFILE" == "full" ]]; then
 fi
 
 echo
-echo "SCAD toolchain consumer tests passed for ${PROFILE}; documented full-runtime XFAILs matched expectations where applicable."
+echo "SCAD toolchain consumer tests passed for ${PROFILE}; drawing publication and documented full-runtime XFAILs matched expectations where applicable."

@@ -6,6 +6,7 @@ External consumer-validation suite for the published SCAD runtime image family:
 
 ```text
 ghcr.io/brainboxemb/scad-toolchain-openscad
+ghcr.io/brainboxemb/scad-toolchain-drawing
 ghcr.io/brainboxemb/scad-toolchain
 ```
 
@@ -14,7 +15,8 @@ Docker build checks.
 
 ## Runtime matrix
 
-The suite treats the full image as a superset of the OpenSCAD-focused image.
+The suite treats the three images as capability profiles from one shared base:
+OpenSCAD-focused, drawing, and full/PythonSCAD.
 
 Shared contract, tested against both profiles:
 
@@ -25,10 +27,16 @@ Shared contract, tested against both profiles:
 - `scad-toolchain-info` and profile identity;
 - OpenSCAD PNG/STL generation;
 - OpenSCAD -> BOSL2;
-- OpenSCAD -> `openscad-new-dimensions` -> SVG;
 - `openscad-docsgen` / `openscad-mdimggen`;
 - `scad-image-watermark` / Pillow;
 - generic published-runtime filesystem/environment expectations.
+
+Additional drawing-runtime contract:
+
+- `inkscape` is present only in the drawing profile;
+- OpenSCAD generates source SVG geometry;
+- suite-owned Python composes an annotated A4 SVG;
+- Inkscape exports that composed SVG to valid PNG and PDF.
 
 Additional full-runtime contract:
 
@@ -43,43 +51,20 @@ failure.
 
 ## Current development target
 
-The current external-suite development target is the released runtime family:
+The suite is being advanced for the toolchain v0.6.0 drawing-runtime change.
+During qualification, the development branch targets the producer's mutable
+`:edge` images:
 
 ```text
 SCAD_TOOLCHAIN_OPENSCAD_IMAGE=ghcr.io/brainboxemb/scad-toolchain-openscad
+SCAD_TOOLCHAIN_DRAWING_IMAGE=ghcr.io/brainboxemb/scad-toolchain-drawing
 SCAD_TOOLCHAIN_FULL_IMAGE=ghcr.io/brainboxemb/scad-toolchain
-SCAD_TOOLCHAIN_VERSION=v0.5.1
+SCAD_TOOLCHAIN_VERSION=edge
 ```
 
-Toolchain v0.5.1 added the pinned `openscad-new-dimensions` library. The
-previous immutable record `test-v0.5.0-toolchain-v0.5.1` remains valid for the
-unchanged v0.5.0 suite contract, but it predates a functional external test of
-that new library.
-
-The consumer test added here is a substantive suite change, so the suite
-version advances to v0.5.1 rather than reusing v0.5.0. It validates the public
-library path/commit diagnostics and exports a real dimensioned SVG from both
-runtime profiles.
-
-A released test-suite tag never relies on a mutable candidate tag. The encoded
-immutable toolchain version in the test tag wins.
-
-## Release gate at a glance
-
-For the dimension-library consumer qualification:
-
-```text
-toolchain v0.5.1 already published
-    ↓
-suite v0.5.1 PR/main test against v0.5.1 green
-    ↓
-test-v0.5.1-toolchain-v0.5.1 green
-    = immutable runtime pair + dimension consumer test verified
-    = permanent Pages evidence published
-```
-
-The older `test-v0.5.0-toolchain-v0.5.1` record is not rewritten; it remains
-the historical proof that toolchain v0.5.1 satisfied the older v0.5.0 suite.
+Once `edge` is green for all three profiles and toolchain v0.6.0 is released,
+the suite is rerun against the exact immutable `v0.6.0` images before creating
+the corresponding permanent test-suite tag.
 
 ## Version resolution
 
@@ -117,8 +102,9 @@ Routine qualification runs on one hosted Ubuntu runner:
 
 1. pull and test the OpenSCAD profile;
 2. keep those Docker layers locally available;
-3. pull and test the full superset;
-4. report exact linux/amd64 compressed OCI bytes and Docker unpacked image size.
+3. pull and test the drawing profile;
+4. pull and test the full/PythonSCAD profile;
+5. report exact linux/amd64 compressed OCI bytes and Docker unpacked image size.
 
 This reflects efficient normal use and shows how much additional data the full
 profile needs once shared layers are present.
@@ -163,26 +149,24 @@ The suite runs a real docsgen parse and Markdown generation against a consumer
 `.scad` source. The generated Markdown must be non-empty and contain the
 expected module documentation.
 
-## OpenSCAD dimension drawing capability
+## Drawing publication capability
 
-Both profiles expose the Codeberg-hosted
-`adrien-delhorme/openscad-new-dimensions` library through the normal
-`OPENSCADPATH` and publish:
+The drawing profile validates the intended text/code-driven publication chain:
 
 ```text
-OPENSCAD_NEW_DIMENSIONS_ROOT
-OPENSCAD_NEW_DIMENSIONS_COMMIT
+OpenSCAD geometry/projections
+    -> suite-owned Python/SVG composition
+    -> Inkscape CLI
+    -> SVG / PNG / PDF
 ```
 
-The external suite does not stop at checking that the directory exists. A
-suite-owned consumer source resolves the installed library and executes the
-pinned upstream demo, then OpenSCAD must export a non-empty SVG. The generated
-SVG is retained in the raw output and shown in the HTML report for both
-profiles.
+The external test checks real generated artifacts. It does not treat
+`command -v inkscape` as sufficient evidence, and it verifies that Inkscape is
+not silently present in the OpenSCAD-focused or full/PythonSCAD profiles.
 
-This keeps the runtime qualification generic. Project-specific dimension
-layout, view selection and drawing readability remain the responsibility of
-the consuming SCAD project.
+The previous v0.5.1 immutable records remain historical evidence for the
+`openscad-new-dimensions` experiment. That library is not part of the current
+v0.6.0 runtime contract.
 
 ## BOSL2 capability comparison
 
@@ -267,8 +251,9 @@ The profile-aware runner follows the dependency chain:
 1. Toolchain / environment
 2. Shared OpenSCAD base functionality
 3. Shared OpenSCAD libraries/tooling
-4. Full-runtime PythonSCAD functionality, when profile=full
-5. Full-runtime interoperability PASS/XFAIL probes
+4. Documentation tooling
+5. Drawing publication, when profile=drawing
+6. Full-runtime PythonSCAD/interoperability checks, when profile=full
 ```
 
 This keeps failures interpretable: establish the shared runtime contract before
@@ -277,7 +262,7 @@ advanced dual-runtime behaviour.
 ## Reports and artifacts
 
 Each profile writes separate raw output below `out/`. The final report combines
-both profiles and keeps profile identity visible.
+all three profiles and keeps profile identity visible.
 
 The report includes:
 
