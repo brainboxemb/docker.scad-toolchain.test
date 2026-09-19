@@ -136,7 +136,7 @@ cat > "${SITE}/index.html" <<EOF
   <h3>OpenSCAD → openscad-new-dimensions</h3>
   <p>
     Each runtime resolves the installed dimensioning library through the normal
-    OpenSCAD library path, projects the pinned upstream demo to 2D and exports it through a
+    OpenSCAD library path, selects the pinned upstream demo's native 2D mode and exports it through a
     suite-owned consumer wrapper.
   </p>
   <div class="comparison">

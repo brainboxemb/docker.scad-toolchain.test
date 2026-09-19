@@ -273,6 +273,7 @@ echo "== OpenSCAD -> openscad-new-dimensions SVG =="
 DIMENSIONS_LOG="$(mktemp)"
 set +e
 openscad \
+  -D 'DIMENSION_RENDER_MODE="2D"' \
   -o "${OUT}/dimensions/demo.svg" \
   "${ROOT}/test/openscad/dimensions.scad" \
   2>&1 | tee "${DIMENSIONS_LOG}"

@@ -28,7 +28,7 @@ not release-history entries here.
 - Public-path and exact-commit checks for the installed
   `openscad-new-dimensions` library in both runtime profiles.
 - A suite-owned OpenSCAD consumer wrapper that resolves the pinned library and
-  executes its real dimensioning demo through a 2D projection suitable for SVG export.
+  executes its real dimensioning demo in the upstream 2D render mode used for SVG export.
 - Non-empty SVG export assertions plus retained SVG evidence in the combined
   HTML report.
 
