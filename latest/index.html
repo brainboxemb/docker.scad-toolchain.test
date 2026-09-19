@@ -69,9 +69,9 @@
     or shared-layer reuse. Independent cold-pull benchmarking is kept out of
     routine CI to avoid deliberately deleting and redownloading shared data.
   </p>
-  <pre>openscad pull_mode=fresh-runner image=ghcr.io/brainboxemb/scad-toolchain-openscad:edge pull_ms=17253 compressed_bytes=330608849 unpacked_bytes=969768705
-drawing pull_mode=shared-layer-reuse image=ghcr.io/brainboxemb/scad-toolchain-drawing:edge pull_ms=6977 compressed_bytes=383993345 unpacked_bytes=1141600919
-full pull_mode=shared-layer-reuse image=ghcr.io/brainboxemb/scad-toolchain:edge pull_ms=7216 compressed_bytes=452147354 unpacked_bytes=1322337161</pre>
+  <pre>openscad pull_mode=fresh-runner image=ghcr.io/brainboxemb/scad-toolchain-openscad:edge pull_ms=12725 compressed_bytes=330608822 unpacked_bytes=969768778
+drawing pull_mode=shared-layer-reuse image=ghcr.io/brainboxemb/scad-toolchain-drawing:edge pull_ms=6062 compressed_bytes=383993160 unpacked_bytes=1141600992
+full pull_mode=shared-layer-reuse image=ghcr.io/brainboxemb/scad-toolchain:edge pull_ms=35783 compressed_bytes=452147443 unpacked_bytes=1322337198</pre>
   <p><a href="image-metrics.txt">Raw image metrics</a></p>
 
   <h2>Shared OpenSCAD evidence</h2>
