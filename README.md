@@ -33,10 +33,10 @@ Shared contract, tested against all three profiles:
 
 Additional drawing-runtime contract:
 
-- `inkscape` is present only in the drawing profile;
+- `inkscape` and the `drawsvg` Python package are present only in the drawing profile;
 - OpenSCAD generates source SVG geometry;
-- suite-owned Python composes an annotated A4 SVG;
-- Inkscape exports that composed SVG to valid PNG and PDF.
+- suite-owned Python uses drawsvg to compose an annotated A4 SVG;
+- that Python producer invokes Inkscape to export the SVG to valid PNG and PDF.
 
 Additional full-runtime contract:
 
@@ -51,7 +51,7 @@ failure.
 
 ## Current development target
 
-The suite is being advanced for the toolchain v0.6.0 drawing-runtime change.
+The suite is being advanced for the toolchain v0.6.1 drawing-runtime authoring stack.
 During qualification, the development branch targets the producer's mutable
 `:edge` images:
 
@@ -62,8 +62,8 @@ SCAD_TOOLCHAIN_FULL_IMAGE=ghcr.io/brainboxemb/scad-toolchain
 SCAD_TOOLCHAIN_VERSION=edge
 ```
 
-Once `edge` is green for all three profiles and toolchain v0.6.0 is released,
-the suite is rerun against the exact immutable `v0.6.0` images before creating
+Once `edge` is green for all three profiles and toolchain v0.6.1 is released,
+the suite is rerun against the exact immutable `v0.6.1` images before creating
 the corresponding permanent test-suite tag.
 
 ## Version resolution
@@ -155,13 +155,14 @@ The drawing profile validates the intended text/code-driven publication chain:
 
 ```text
 OpenSCAD geometry/projections
-    -> suite-owned Python/SVG composition
-    -> Inkscape CLI
+    -> suite-owned Python + drawsvg composition
+    -> canonical SVG
+    -> Python invokes Inkscape CLI
     -> SVG / PNG / PDF
 ```
 
 The external test checks real generated artifacts. It does not treat
-`command -v inkscape` as sufficient evidence, and it verifies that Inkscape is
+`command -v inkscape` or a successful drawsvg import as sufficient evidence, and it verifies that Inkscape is
 not silently present in the OpenSCAD-focused or full/PythonSCAD profiles.
 
 The previous v0.5.1 immutable records remain historical evidence for the
@@ -269,8 +270,8 @@ The report includes:
 - PASS/XFAIL table with compressed Docker image size per profile;
 - profile-specific sections;
 - representative generated renders;
-- exact runtime image names/versions, including drawing-only Inkscape and
-  full-only Python libraries;
+- exact runtime image names/versions, including drawing-only Inkscape/drawsvg
+  and full-only Python libraries;
 - raw image-distribution metrics.
 
 Successful non-PR runs update GitHub Pages:

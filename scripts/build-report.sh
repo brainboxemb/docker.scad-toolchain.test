@@ -62,6 +62,7 @@ format_mib() {
 }
 
 INKSCAPE_VERSION_INFO="$(info_value drawing Inkscape)"
+DRAWSVG_VERSION_INFO="$(info_value drawing drawsvg)"
 SHAPELY_VERSION_INFO="$(info_value full Shapely)"
 
 OPENSCAD_SIZE="$(format_mib "$(metric_value openscad compressed_bytes)")"
@@ -136,6 +137,7 @@ cat > "${SITE}/index.html" <<EOF
     <tr><th>Git</th><td>${GIT_VERSION}</td></tr>
     <tr><th>SCons</th><td>${SCONS_VERSION_INFO}</td></tr>
     <tr><th>Inkscape (drawing)</th><td>${INKSCAPE_VERSION_INFO}</td></tr>
+    <tr><th>drawsvg (drawing)</th><td>${DRAWSVG_VERSION_INFO}</td></tr>
     <tr><th>openscad_docsgen</th><td>${DOCSGEN_VERSION}</td></tr>
     <tr><th>Pillow</th><td>${PILLOW_VERSION_INFO}</td></tr>
     <tr><th>BOSL2</th><td>v${BOSL2_VERSION_INFO}</td></tr>
@@ -196,9 +198,9 @@ cat > "${SITE}/index.html" <<EOF
 
   <h2>Drawing-runtime publication evidence</h2>
   <p>
-    OpenSCAD generates the source geometry. A suite-owned Python script composes
-    that geometry into an A4 SVG with annotations and a title block. Inkscape
-    then exports the same composed sheet to PNG and PDF.
+    OpenSCAD generates the source geometry. A suite-owned Python script uses
+    drawsvg to compose that geometry into an A4 SVG with annotations and a title
+    block, then invokes Inkscape CLI to export the same sheet to PNG and PDF.
   </p>
   <div class="comparison">
     <div>
