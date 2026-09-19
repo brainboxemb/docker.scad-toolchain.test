@@ -21,6 +21,53 @@ PILLOW_VERSION_INFO="$(python3 -c 'import importlib.metadata as m; print(m.versi
 BOSL2_VERSION_INFO="${BOSL2_VERSION:-unknown}"
 PYBOSL2_VERSION_INFO="${PYBOSL2_VERSION:-unknown}"
 
+info_value() {
+  local profile="$1"
+  local key="$2"
+  local file="${OUT}/${profile}-profile/toolchain-info.txt"
+
+  awk -F ':' -v wanted="$key" '
+    {
+      name=$1
+      gsub(/[[:space:]]+$/, "", name)
+      if (name == wanted) {
+        sub(/^[^:]*:[[:space:]]*/, "", $0)
+        print
+        exit
+      }
+    }
+  ' "$file"
+}
+
+metric_value() {
+  local profile="$1"
+  local key="$2"
+
+  awk -v wanted_profile="$profile" -v wanted_key="$key" '
+    $1 == wanted_profile {
+      for (i = 2; i <= NF; i++) {
+        split($i, item, "=")
+        if (item[1] == wanted_key) {
+          print item[2]
+          exit
+        }
+      }
+    }
+  ' "${OUT}/image-metrics.txt"
+}
+
+format_mib() {
+  local bytes="$1"
+  awk -v value="$bytes" 'BEGIN { printf "%.1f MiB", value / 1048576 }'
+}
+
+INKSCAPE_VERSION_INFO="$(info_value drawing Inkscape)"
+SHAPELY_VERSION_INFO="$(info_value full Shapely)"
+
+OPENSCAD_SIZE="$(format_mib "$(metric_value openscad compressed_bytes)")"
+DRAWING_SIZE="$(format_mib "$(metric_value drawing compressed_bytes)")"
+FULL_SIZE="$(format_mib "$(metric_value full compressed_bytes)")"
+
 rm -rf "${SITE}"
 mkdir -p "${SITE}/openscad" "${SITE}/drawing" "${SITE}/full"
 cp -a "${OUT}/openscad-profile/." "${SITE}/openscad/"
@@ -62,6 +109,7 @@ cat > "${SITE}/index.html" <<EOF
   <h2>Profile summary</h2>
   <table>
     <tr><th>Capability</th><th>OpenSCAD runtime</th><th>Drawing runtime</th><th>Full runtime</th></tr>
+    <tr><td>Compressed image size</td><td>${OPENSCAD_SIZE}</td><td>${DRAWING_SIZE}</td><td>${FULL_SIZE}</td></tr>
     <tr><td>OpenSCAD PNG/STL</td><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
     <tr><td>OpenSCAD → BOSL2</td><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
     <tr><td>SCons → OpenSCAD</td><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
@@ -87,10 +135,12 @@ cat > "${SITE}/index.html" <<EOF
     <tr><th>Python</th><td>${PYTHON_VERSION}</td></tr>
     <tr><th>Git</th><td>${GIT_VERSION}</td></tr>
     <tr><th>SCons</th><td>${SCONS_VERSION_INFO}</td></tr>
+    <tr><th>Inkscape (drawing)</th><td>${INKSCAPE_VERSION_INFO}</td></tr>
     <tr><th>openscad_docsgen</th><td>${DOCSGEN_VERSION}</td></tr>
     <tr><th>Pillow</th><td>${PILLOW_VERSION_INFO}</td></tr>
     <tr><th>BOSL2</th><td>v${BOSL2_VERSION_INFO}</td></tr>
     <tr><th>pybosl2 (full)</th><td>${PYBOSL2_VERSION_INFO}</td></tr>
+    <tr><th>Shapely (full)</th><td>${SHAPELY_VERSION_INFO}</td></tr>
   </table>
 
   <h2>Distribution measurements</h2>

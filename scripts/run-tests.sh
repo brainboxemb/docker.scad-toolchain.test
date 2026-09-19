@@ -103,7 +103,8 @@ run_expected_failure() {
 # -------------------------------------------------------------------
 
 echo "== Toolchain information (${PROFILE}) =="
-scad-toolchain-info
+scad-toolchain-info | tee "${OUT}/toolchain-info.txt"
+test -s "${OUT}/toolchain-info.txt"
 
 echo
 echo "== Public commands =="

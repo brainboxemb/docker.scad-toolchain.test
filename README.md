@@ -266,10 +266,11 @@ all three profiles and keeps profile identity visible.
 
 The report includes:
 
-- PASS/XFAIL table;
+- PASS/XFAIL table with compressed Docker image size per profile;
 - profile-specific sections;
 - representative generated renders;
-- exact runtime image names/versions;
+- exact runtime image names/versions, including drawing-only Inkscape and
+  full-only Python libraries;
 - raw image-distribution metrics.
 
 Successful non-PR runs update GitHub Pages:
