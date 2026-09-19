@@ -19,6 +19,7 @@ mkdir -p \
   "${OUT}/docsgen" \
   "${OUT}/watermark" \
   "${OUT}/scons" \
+  "${OUT}/dimensions" \
   "${OUT}/bosl2-openscad"
 
 if [[ "$PROFILE" == "full" ]]; then
@@ -118,11 +119,18 @@ echo
 echo "== Environment library paths =="
 printf 'OPENSCADPATH=%s\n' "${OPENSCADPATH:-<unset>}"
 printf 'BOSL2_ROOT=%s\n' "${BOSL2_ROOT:-<unset>}"
+printf 'OPENSCAD_NEW_DIMENSIONS_ROOT=%s\n' "${OPENSCAD_NEW_DIMENSIONS_ROOT:-<unset>}"
+printf 'OPENSCAD_NEW_DIMENSIONS_COMMIT=%s\n' "${OPENSCAD_NEW_DIMENSIONS_COMMIT:-<unset>}"
 printf 'PYTHONPATH=%s\n' "${PYTHONPATH:-<unset>}"
 
 test -n "${BOSL2_ROOT:-}"
 test -f "${BOSL2_ROOT}/std.scad"
 test -f "${BOSL2_ROOT}/shapes3d.scad"
+test -n "${OPENSCAD_NEW_DIMENSIONS_ROOT:-}"
+test -n "${OPENSCAD_NEW_DIMENSIONS_COMMIT:-}"
+[[ "${OPENSCAD_NEW_DIMENSIONS_COMMIT}" =~ ^[0-9a-f]{40}$ ]]
+test -f "${OPENSCAD_NEW_DIMENSIONS_ROOT}/dimensions.scad"
+test -f "${OPENSCAD_NEW_DIMENSIONS_ROOT}/demo/demo.scad"
 if [[ "$PROFILE" == "full" ]]; then
   test -n "${PYTHONPATH:-}"
 fi
@@ -258,6 +266,14 @@ echo "openscad-docsgen external consumer test passed"
 # -------------------------------------------------------------------
 # 5. Library / interoperability
 # -------------------------------------------------------------------
+
+run_checked "OpenSCAD -> openscad-new-dimensions SVG" \
+  openscad \
+    -o "${OUT}/dimensions/demo.svg" \
+    "${ROOT}/test/openscad/dimensions.scad"
+
+test -s "${OUT}/dimensions/demo.svg"
+grep -qi '<svg' "${OUT}/dimensions/demo.svg"
 
 run_checked "OpenSCAD -> BOSL2 PNG" \
   xvfb-run -a openscad \

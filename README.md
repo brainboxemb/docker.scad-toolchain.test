@@ -25,6 +25,7 @@ Shared contract, tested against both profiles:
 - `scad-toolchain-info` and profile identity;
 - OpenSCAD PNG/STL generation;
 - OpenSCAD -> BOSL2;
+- OpenSCAD -> `openscad-new-dimensions` -> SVG;
 - `openscad-docsgen` / `openscad-mdimggen`;
 - `scad-image-watermark` / Pillow;
 - generic published-runtime filesystem/environment expectations.
@@ -42,41 +43,43 @@ failure.
 
 ## Current development target
 
-During Migration 005 pre-release qualification the branch pins exact candidate
-images:
+The current external-suite development target is the released runtime family:
 
 ```text
 SCAD_TOOLCHAIN_OPENSCAD_IMAGE=ghcr.io/brainboxemb/scad-toolchain-openscad
 SCAD_TOOLCHAIN_FULL_IMAGE=ghcr.io/brainboxemb/scad-toolchain
-SCAD_TOOLCHAIN_VERSION=sha-eeb40e7
+SCAD_TOOLCHAIN_VERSION=v0.5.1
 ```
 
-The exact SHA tag is intentional until the immutable `v0.5.0` runtime exists.
-After release, normal development can move to the selected released/development
-version without changing release-tag resolution.
+Toolchain v0.5.1 added the pinned `openscad-new-dimensions` library. The
+previous immutable record `test-v0.5.0-toolchain-v0.5.1` remains valid for the
+unchanged v0.5.0 suite contract, but it predates a functional external test of
+that new library.
+
+The consumer test added here is a substantive suite change, so the suite
+version advances to v0.5.1 rather than reusing v0.5.0. It validates the public
+library path/commit diagnostics and exports a real dimensioned SVG from both
+runtime profiles.
 
 A released test-suite tag never relies on a mutable candidate tag. The encoded
 immutable toolchain version in the test tag wins.
 
 ## Release gate at a glance
 
-For the v0.5.0 image-family release:
+For the dimension-library consumer qualification:
 
 ```text
-qualified sha-* candidate green
-    = pre-release architecture/runtime candidate verified
-
-:v0.5.0 green through automatic workflow_dispatch
-    = published immutable OpenSCAD + full runtime pair verified
-    = updates mutable /latest/
-
-test-v0.5.0-toolchain-v0.5.0 green
-    = immutable runtime pair + immutable test-suite revision verified
+toolchain v0.5.1 already published
+    ↓
+suite v0.5.1 PR/main test against v0.5.1 green
+    ↓
+test-v0.5.1-toolchain-v0.5.1 green
+    = immutable runtime pair + dimension consumer test verified
     = permanent Pages evidence published
 ```
 
-The final tagged state is the historical release record. `/latest/` is useful
-for current status but is not a replacement for the permanent tag-named report.
+The older `test-v0.5.0-toolchain-v0.5.1` record is not rewritten; it remains
+the historical proof that toolchain v0.5.1 satisfied the older v0.5.0 suite.
 
 ## Version resolution
 
@@ -86,10 +89,10 @@ Immutable test releases use:
 test-v<test-suite-version>-toolchain-v<toolchain-version>
 ```
 
-For Migration 005 the intended record is:
+For the current dimension-library qualification the intended record is:
 
 ```text
-test-v0.5.0-toolchain-v0.5.0
+test-v0.5.1-toolchain-v0.5.1
 ```
 
 The workflow resolves runtime versions as follows:
@@ -159,6 +162,27 @@ openscad-mdimggen
 The suite runs a real docsgen parse and Markdown generation against a consumer
 `.scad` source. The generated Markdown must be non-empty and contain the
 expected module documentation.
+
+## OpenSCAD dimension drawing capability
+
+Both profiles expose the Codeberg-hosted
+`adrien-delhorme/openscad-new-dimensions` library through the normal
+`OPENSCADPATH` and publish:
+
+```text
+OPENSCAD_NEW_DIMENSIONS_ROOT
+OPENSCAD_NEW_DIMENSIONS_COMMIT
+```
+
+The external suite does not stop at checking that the directory exists. A
+suite-owned consumer source resolves the installed library and executes the
+pinned upstream demo, then OpenSCAD must export a non-empty SVG. The generated
+SVG is retained in the raw output and shown in the HTML report for both
+profiles.
+
+This keeps the runtime qualification generic. Project-specific dimension
+layout, view selection and drawing readability remain the responsibility of
+the consuming SCAD project.
 
 ## BOSL2 capability comparison
 
