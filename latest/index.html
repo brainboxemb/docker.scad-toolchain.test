@@ -20,33 +20,35 @@
   <h1>SCAD toolchain runtime-family verification</h1>
 
   <p>
-    One external suite validates two related runtime profiles. Shared OpenSCAD
-    behavior is tested independently in both images; PythonSCAD-specific
-    behavior remains required only from the full runtime.
+    One external suite validates three related runtime profiles. Shared OpenSCAD
+    behavior is tested independently in all three images; drawing publication
+    is isolated to the drawing runtime and PythonSCAD-specific behavior remains
+    required only from the full runtime.
   </p>
 
   <h2>Profile summary</h2>
   <table>
-    <tr><th>Capability</th><th>OpenSCAD runtime</th><th>Full runtime</th></tr>
-    <tr><td>OpenSCAD PNG/STL</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
-    <tr><td>OpenSCAD → BOSL2</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
-    <tr><td>OpenSCAD → openscad-new-dimensions SVG</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
-    <tr><td>SCons → OpenSCAD</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
-    <tr><td>docsgen/mdimggen</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
-    <tr><td>watermark/Pillow</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
-    <tr><td>Git/tooling basics</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
-    <tr><td>PythonSCAD PNG/STL</td><td>not required</td><td class="pass">PASS</td></tr>
-    <tr><td>PythonSCAD → pybosl2</td><td>not required</td><td class="pass">PASS</td></tr>
-    <tr><td>PythonSCAD → BOSL2 .scad</td><td>not required</td><td class="xfail">XFAIL</td></tr>
-    <tr><td>PythonSCAD → OpenSCAD object()</td><td>not required</td><td class="xfail">XFAIL</td></tr>
+    <tr><th>Capability</th><th>OpenSCAD runtime</th><th>Drawing runtime</th><th>Full runtime</th></tr>
+    <tr><td>OpenSCAD PNG/STL</td><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+    <tr><td>OpenSCAD → BOSL2</td><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+    <tr><td>SCons → OpenSCAD</td><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+    <tr><td>docsgen/mdimggen</td><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+    <tr><td>watermark/Pillow</td><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+    <tr><td>Inkscape drawing publication</td><td>not installed</td><td class="pass">PASS</td><td>not installed</td></tr>
+    <tr><td>Git/tooling basics</td><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+    <tr><td>PythonSCAD PNG/STL</td><td>not required</td><td>not required</td><td class="pass">PASS</td></tr>
+    <tr><td>PythonSCAD → pybosl2</td><td>not required</td><td>not required</td><td class="pass">PASS</td></tr>
+    <tr><td>PythonSCAD → BOSL2 .scad</td><td>not required</td><td>not required</td><td class="xfail">XFAIL</td></tr>
+    <tr><td>PythonSCAD → OpenSCAD object()</td><td>not required</td><td>not required</td><td class="xfail">XFAIL</td></tr>
   </table>
 
   <h2>Exact runtime inputs</h2>
   <table>
     <tr><th>Test suite</th><td><code>latest</code></td></tr>
-    <tr><th>Toolchain version/tag</th><td><code>v0.5.3</code></td></tr>
-    <tr><th>OpenSCAD image</th><td><code>ghcr.io/brainboxemb/scad-toolchain-openscad:v0.5.3</code></td></tr>
-    <tr><th>Full image</th><td><code>ghcr.io/brainboxemb/scad-toolchain:v0.5.3</code></td></tr>
+    <tr><th>Toolchain version/tag</th><td><code>edge</code></td></tr>
+    <tr><th>OpenSCAD image</th><td><code>ghcr.io/brainboxemb/scad-toolchain-openscad:edge</code></td></tr>
+    <tr><th>Drawing image</th><td><code>ghcr.io/brainboxemb/scad-toolchain-drawing:edge</code></td></tr>
+    <tr><th>Full image</th><td><code>ghcr.io/brainboxemb/scad-toolchain:edge</code></td></tr>
     <tr><th>OpenSCAD</th><td>OpenSCAD version 2026.09.17.nightly</td></tr>
     <tr><th>PythonSCAD (full)</th><td>PythonSCAD version 1.1.2</td></tr>
     <tr><th>Python</th><td>Python 3.12.3</td></tr>
@@ -55,7 +57,6 @@
     <tr><th>openscad_docsgen</th><td>2.0.55</td></tr>
     <tr><th>Pillow</th><td>12.3.0</td></tr>
     <tr><th>BOSL2</th><td>v2.0.752</td></tr>
-    <tr><th>openscad-new-dimensions</th><td><code>d37828e26df6067fbd872e8e291c6b0b19298243</code></td></tr>
     <tr><th>pybosl2 (full)</th><td>0.6.7</td></tr>
   </table>
 
@@ -68,8 +69,9 @@
     or shared-layer reuse. Independent cold-pull benchmarking is kept out of
     routine CI to avoid deliberately deleting and redownloading shared data.
   </p>
-  <pre>openscad pull_mode=fresh-runner image=ghcr.io/brainboxemb/scad-toolchain-openscad:v0.5.3 pull_ms=12028 compressed_bytes=330644189 unpacked_bytes=969869610
-full pull_mode=shared-layer-reuse image=ghcr.io/brainboxemb/scad-toolchain:v0.5.3 pull_ms=3864 compressed_bytes=452182906 unpacked_bytes=1322441145</pre>
+  <pre>openscad pull_mode=fresh-runner image=ghcr.io/brainboxemb/scad-toolchain-openscad:edge pull_ms=17253 compressed_bytes=330608849 unpacked_bytes=969768705
+drawing pull_mode=shared-layer-reuse image=ghcr.io/brainboxemb/scad-toolchain-drawing:edge pull_ms=6977 compressed_bytes=383993345 unpacked_bytes=1141600919
+full pull_mode=shared-layer-reuse image=ghcr.io/brainboxemb/scad-toolchain:edge pull_ms=7216 compressed_bytes=452147354 unpacked_bytes=1322337161</pre>
   <p><a href="image-metrics.txt">Raw image metrics</a></p>
 
   <h2>Shared OpenSCAD evidence</h2>
@@ -80,6 +82,13 @@ full pull_mode=shared-layer-reuse image=ghcr.io/brainboxemb/scad-toolchain:v0.5.
       <p><a href="openscad/openscad/smoke.stl">Smoke STL</a></p>
       <p><a href="openscad/scons/smoke.stl">SCons → OpenSCAD STL</a></p>
       <p><a href="openscad/docsgen/docsgen.scad.md">Generated docs</a></p>
+    </div>
+    <div>
+      <h3>Drawing image — same OpenSCAD contract</h3>
+      <img src="drawing/openscad/smoke.png" alt="Drawing runtime OpenSCAD smoke render">
+      <p><a href="drawing/openscad/smoke.stl">Smoke STL</a></p>
+      <p><a href="drawing/scons/smoke.stl">SCons → OpenSCAD STL</a></p>
+      <p><a href="drawing/docsgen/docsgen.scad.md">Generated docs</a></p>
     </div>
     <div>
       <h3>Full image — same OpenSCAD contract</h3>
@@ -93,29 +102,28 @@ full pull_mode=shared-layer-reuse image=ghcr.io/brainboxemb/scad-toolchain:v0.5.
   <h3>Watermark</h3>
   <div class="comparison">
     <img src="openscad/watermark/openscad-smoke-watermarked.png" alt="OpenSCAD runtime watermarked render">
+    <img src="drawing/watermark/openscad-smoke-watermarked.png" alt="Drawing runtime watermarked render">
     <img src="full/watermark/openscad-smoke-watermarked.png" alt="Full runtime watermarked render">
   </div>
 
   <h3>OpenSCAD → BOSL2</h3>
   <div class="comparison">
     <img src="openscad/bosl2-openscad/model.png" alt="OpenSCAD runtime BOSL2 render">
+    <img src="drawing/bosl2-openscad/model.png" alt="Drawing runtime BOSL2 render">
     <img src="full/bosl2-openscad/model.png" alt="Full runtime BOSL2 render">
   </div>
 
-  <h3>OpenSCAD → openscad-new-dimensions</h3>
+  <h2>Drawing-runtime publication evidence</h2>
   <p>
-    Each runtime resolves the installed dimensioning library through the normal
-    OpenSCAD library path, selects the pinned upstream demo's native 2D mode and exports it through a
-    suite-owned consumer wrapper.
+    OpenSCAD generates the source geometry. A suite-owned Python script composes
+    that geometry into an A4 SVG with annotations and a title block. Inkscape
+    then exports the same composed sheet to PNG and PDF.
   </p>
   <div class="comparison">
     <div>
-      <img src="openscad/dimensions/demo.svg" alt="OpenSCAD runtime dimensioned SVG">
-      <p><a href="openscad/dimensions/demo.svg">OpenSCAD profile SVG</a></p>
-    </div>
-    <div>
-      <img src="full/dimensions/demo.svg" alt="Full runtime dimensioned SVG">
-      <p><a href="full/dimensions/demo.svg">Full profile SVG</a></p>
+      <img src="drawing/drawing/composed-a4.png" alt="Drawing runtime composed A4 technical drawing">
+      <p><a href="drawing/drawing/composed-a4.svg">Composed SVG</a></p>
+      <p><a href="drawing/drawing/composed-a4.pdf">Exported PDF</a></p>
     </div>
   </div>
 
@@ -147,6 +155,7 @@ full pull_mode=shared-layer-reuse image=ghcr.io/brainboxemb/scad-toolchain:v0.5.
   <h2>Raw profile outputs</h2>
   <ul>
     <li><a href="openscad/">OpenSCAD runtime outputs</a></li>
+    <li><a href="drawing/">Drawing runtime outputs</a></li>
     <li><a href="full/">Full runtime outputs</a></li>
   </ul>
 </body>
