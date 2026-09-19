@@ -18,7 +18,7 @@ Docker build checks.
 The suite treats the three images as capability profiles from one shared base:
 OpenSCAD-focused, drawing, and full/PythonSCAD.
 
-Shared contract, tested against both profiles:
+Shared contract, tested against all three profiles:
 
 - `openscad`;
 - Python 3;
@@ -88,13 +88,13 @@ main / pull request
 
 workflow_dispatch
     -> optional explicit override
-    -> for example edge, sha-eeb40e7 or v0.5.0
+    -> for example edge, sha-eeb40e7 or v0.6.0
 
-tag test-v0.5.0-toolchain-v0.5.0
-    -> automatically v0.5.0
+tag test-v0.6.0-toolchain-v0.6.0
+    -> automatically v0.6.0
 ```
 
-Both runtime package names receive the same resolved version.
+All three runtime package names receive the same resolved version.
 
 ## Distribution measurements
 
@@ -114,7 +114,7 @@ Docker state between pulls. That benchmark is historical architecture evidence;
 destructive pruning is deliberately **not** part of routine CI because it
 throws away shared data and unrelated hosted-runner images.
 
-Qualified candidate measurements:
+Historical Migration 005 two-profile measurements:
 
 | Profile | Compressed OCI bytes | Unpacked bytes | Controlled cold pull |
 | --- | ---: | ---: | ---: |
@@ -126,7 +126,7 @@ full image, for consumers that do not need PythonSCAD.
 
 ## PNG watermark tooling
 
-Both profiles must expose:
+All three profiles must expose:
 
 ```text
 scad-image-watermark
@@ -138,7 +138,7 @@ not byte-identical to its input.
 
 ## OpenSCAD documentation tooling
 
-Both profiles must expose:
+All three profiles must expose:
 
 ```text
 openscad-docsgen
@@ -173,7 +173,7 @@ v0.6.0 runtime contract.
 The suite deliberately keeps these routes separate:
 
 ```text
-OpenSCAD   -> BOSL2          PASS expected, both profiles
+OpenSCAD   -> BOSL2          PASS expected, all three profiles
 PythonSCAD -> pybosl2        PASS expected, full profile only
 PythonSCAD -> BOSL2 .scad    XFAIL compatibility probe, full only
 ```

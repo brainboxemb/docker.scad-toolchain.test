@@ -18,8 +18,34 @@ not release-history entries here.
 
 | Test-suite version | Main change |
 | --- | --- |
+| `v0.6.0` | Three-profile qualification with code-driven Inkscape drawing publication |
 | `v0.5.1` | Functional external consumer coverage for `openscad-new-dimensions` SVG drawings |
 | `v0.5.0` | Profile-aware external validation for the OpenSCAD-focused and full runtime image family |
+
+## v0.6.0
+
+### Added
+
+- External qualification for the dedicated
+  `ghcr.io/brainboxemb/scad-toolchain-drawing` runtime profile.
+- A real code-driven technical-drawing consumer path:
+  `OpenSCAD -> Python/SVG composition -> Inkscape -> PNG/PDF`.
+- Assertions that Inkscape is present only in the drawing profile.
+- Three-profile image metrics and combined report evidence.
+
+### Changed
+
+- The shared OpenSCAD-facing contract now runs against OpenSCAD-focused,
+  drawing and full/PythonSCAD profiles.
+- The current runtime contract no longer requires
+  `openscad-new-dimensions`; its v0.5.1 qualification remains historical
+  immutable evidence.
+
+### Qualification target
+
+```text
+test-v0.6.0-toolchain-v0.6.0
+```
 
 ## v0.5.1
 
