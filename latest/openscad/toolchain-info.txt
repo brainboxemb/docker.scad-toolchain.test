@@ -1,8 +1,8 @@
 SCAD toolchain
 ==============
 Profile    : openscad
-Toolchain  : 0.6.1
-OpenSCAD   : OpenSCAD version 2026.09.17.nightly
+Toolchain  : 0.6.2
+OpenSCAD   : OpenSCAD version 2026.11.05.nightly
 PythonSCAD : not installed
 Python     : Python 3.12.3
 Git        : git version 2.43.0

@@ -1,14 +1,17 @@
 SCAD toolchain
 ==============
 Profile    : drawing
-Toolchain  : 0.6.1
-OpenSCAD   : OpenSCAD version 2026.09.17.nightly
+Toolchain  : 0.6.2
+OpenSCAD   : OpenSCAD version 2026.11.05.nightly
 PythonSCAD : not installed
 Python     : Python 3.12.3
 Git        : git version 2.43.0
 SCons      : 4.11.1
 Inkscape   : Inkscape 1.2.2 (b0a8486541, 2022-12-01)
 drawsvg    : 2.4.2
+ImageMagick: Version: ImageMagick 7.1.2-1 Q16-HDRI x86_64 e08c2fb4f:20250811 https://imagemagick.org
+vcs2l      : 1.1.7
+codespell  : 2.4.1
 BOSL2      : v2.0.752
 pybosl2    : not installed
 Shapely    : not installed
