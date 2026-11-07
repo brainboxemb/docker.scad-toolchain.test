@@ -36,6 +36,7 @@
     <tr><td>docsgen/mdimggen</td><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
     <tr><td>watermark/Pillow</td><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
     <tr><td>Inkscape drawing publication</td><td>not installed</td><td class="pass">PASS</td><td>not installed</td></tr>
+    <tr><td>NopSCADlib publishing prerequisites (magick, vcs2l, Markdown, codespell)</td><td>not installed</td><td class="pass">PASS</td><td>not installed</td></tr>
     <tr><td>Git/tooling basics</td><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
     <tr><td>PythonSCAD PNG/STL</td><td>not required</td><td>not required</td><td class="pass">PASS</td></tr>
     <tr><td>PythonSCAD → pybosl2</td><td>not required</td><td>not required</td><td class="pass">PASS</td></tr>
@@ -73,9 +74,9 @@
     or shared-layer reuse. Independent cold-pull benchmarking is kept out of
     routine CI to avoid deliberately deleting and redownloading shared data.
   </p>
-  <pre>openscad pull_mode=fresh-runner image=ghcr.io/brainboxemb/scad-toolchain-openscad:edge pull_ms=11442 compressed_bytes=328614704 unpacked_bytes=963056074
-drawing pull_mode=shared-layer-reuse image=ghcr.io/brainboxemb/scad-toolchain-drawing:edge pull_ms=5820 compressed_bytes=397433612 unpacked_bytes=1169864959
-full pull_mode=shared-layer-reuse image=ghcr.io/brainboxemb/scad-toolchain:edge pull_ms=4749 compressed_bytes=450176202 unpacked_bytes=1315673487</pre>
+  <pre>openscad pull_mode=fresh-runner image=ghcr.io/brainboxemb/scad-toolchain-openscad:edge pull_ms=12219 compressed_bytes=328614704 unpacked_bytes=963056074
+drawing pull_mode=shared-layer-reuse image=ghcr.io/brainboxemb/scad-toolchain-drawing:edge pull_ms=6568 compressed_bytes=397433612 unpacked_bytes=1169864959
+full pull_mode=shared-layer-reuse image=ghcr.io/brainboxemb/scad-toolchain:edge pull_ms=5275 compressed_bytes=450176202 unpacked_bytes=1315673487</pre>
   <p><a href="image-metrics.txt">Raw image metrics</a></p>
 
   <h2>Shared OpenSCAD evidence</h2>
@@ -130,6 +131,16 @@ full pull_mode=shared-layer-reuse image=ghcr.io/brainboxemb/scad-toolchain:edge 
       <p><a href="drawing/drawing/composed-a4.pdf">Exported PDF</a></p>
     </div>
   </div>
+
+  <h3>NopSCADlib drawing/publication prerequisites</h3>
+  <p>
+    The drawing runtime processes a real OpenSCAD PNG through ImageMagick 7,
+    converts Markdown with table support into HTML, runs codespell, and
+    imports a SHA-pinned local git repository through vcs2l. Colorama
+    import is validated as part of the same external consumer script.
+  </p>
+  <img src="drawing/nopscadlib-publishing/openscad-preview.png" alt="ImageMagick resized OpenSCAD render">
+  <p><a href="drawing/nopscadlib-publishing/example.html">Generated Markdown HTML</a></p>
 
   <h2>Full-runtime PythonSCAD evidence</h2>
   <div class="comparison">
