@@ -117,6 +117,7 @@ cat > "${SITE}/index.html" <<EOF
     <tr><td>docsgen/mdimggen</td><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
     <tr><td>watermark/Pillow</td><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
     <tr><td>Inkscape drawing publication</td><td>not installed</td><td class="pass">PASS</td><td>not installed</td></tr>
+    <tr><td>NopSCADlib publishing prerequisites (magick, vcs2l, Markdown, codespell)</td><td>not installed</td><td class="pass">PASS</td><td>not installed</td></tr>
     <tr><td>Git/tooling basics</td><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
     <tr><td>PythonSCAD PNG/STL</td><td>not required</td><td>not required</td><td class="pass">PASS</td></tr>
     <tr><td>PythonSCAD → pybosl2</td><td>not required</td><td>not required</td><td class="pass">PASS</td></tr>
@@ -209,6 +210,16 @@ cat > "${SITE}/index.html" <<EOF
       <p><a href="drawing/drawing/composed-a4.pdf">Exported PDF</a></p>
     </div>
   </div>
+
+  <h3>NopSCADlib drawing/publication prerequisites</h3>
+  <p>
+    The drawing runtime processes a real OpenSCAD PNG through ImageMagick 7,
+    converts Markdown with table support into HTML, runs codespell, and
+    imports a SHA-pinned local git repository through vcs2l. Colorama
+    import is validated as part of the same external consumer script.
+  </p>
+  <img src="drawing/nopscadlib-publishing/openscad-preview.png" alt="ImageMagick resized OpenSCAD render">
+  <p><a href="drawing/nopscadlib-publishing/example.html">Generated Markdown HTML</a></p>
 
   <h2>Full-runtime PythonSCAD evidence</h2>
   <div class="comparison">
