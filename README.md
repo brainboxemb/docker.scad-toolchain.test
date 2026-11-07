@@ -39,7 +39,7 @@ Additional drawing-runtime contract:
   is imported through public Python.
 
 
-- `inkscape` and the `drawsvg` Python package are present only in the drawing profile;
+- pinned Inkscape 1.4.4 (2026 stable) and the `drawsvg` Python package are present only in the drawing profile;
 - OpenSCAD generates source SVG geometry;
 - suite-owned Python uses drawsvg to compose an annotated A4 SVG;
 - that Python producer invokes Inkscape to export the SVG to valid PNG and PDF.

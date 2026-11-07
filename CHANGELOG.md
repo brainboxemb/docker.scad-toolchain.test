@@ -18,11 +18,27 @@ not release-history entries here.
 
 | Test-suite version | Main change |
 | --- | --- |
+| `v0.6.3` | Qualify the pinned upstream 2026 Inkscape 1.4.4 drawing runtime |
 | `v0.6.2` | Validate NopSCADlib publication dependencies in the drawing profile |
 | `v0.6.1` | Report drawing dependencies/image size and qualify drawsvg composition |
 | `v0.6.0` | Three-profile qualification with code-driven Inkscape drawing publication |
 | `v0.5.1` | Functional external consumer coverage for `openscad-new-dimensions` SVG drawings |
 | `v0.5.0` | Profile-aware external validation for the OpenSCAD-focused and full runtime image family |
+
+## v0.6.3
+
+### Changed
+
+- Require Inkscape 1.4.4 in the drawing runtime, rather than only
+  checking that an Inkscape executable exists.
+- Continue checking real OpenSCAD -> SVG composition -> Inkscape
+  PNG/PDF exports and reporting the resolved executable version.
+
+### Qualification target
+
+```text
+test-v0.6.3-toolchain-v0.6.3
+```
 
 ## v0.6.2
 

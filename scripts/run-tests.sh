@@ -117,6 +117,9 @@ command -v openscad-mdimggen
 command -v scad-image-watermark
 if [[ "$PROFILE" == "drawing" ]]; then
   command -v inkscape
+  # After the v0.6.3 producer update, the drawing runtime must expose the
+  # stable 2026 Inkscape version, not Ubuntu 24.04's 1.2.x package.
+  inkscape --version | grep -F "Inkscape 1.4.4"
   python3 -c 'import drawsvg, importlib.metadata as m; print("drawsvg " + m.version("drawsvg"))'
 else
   if command -v inkscape >/dev/null 2>&1; then
