@@ -33,6 +33,12 @@ Shared contract, tested against all three profiles:
 
 Additional drawing-runtime contract:
 
+- NopSCADlib publication prerequisites: `magick` transforms the OpenSCAD
+  PNG, `vcs import` checks out a pinned local Git fixture, Python Markdown
+  generates HTML with tables, `codespell` checks the example, and `colorama`
+  is imported through public Python.
+
+
 - `inkscape` and the `drawsvg` Python package are present only in the drawing profile;
 - OpenSCAD generates source SVG geometry;
 - suite-owned Python uses drawsvg to compose an annotated A4 SVG;
@@ -51,7 +57,7 @@ failure.
 
 ## Current development target
 
-The suite is being advanced for the toolchain v0.6.1 drawing-runtime authoring stack.
+The suite validates the toolchain v0.6.2 NopSCADlib drawing/publication prerequisites.
 During qualification, the development branch targets the producer's mutable
 `:edge` images:
 
