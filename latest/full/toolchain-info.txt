@@ -1,7 +1,7 @@
 SCAD toolchain
 ==============
 Profile    : full
-Toolchain  : 0.6.2
+Toolchain  : 0.6.3
 OpenSCAD   : OpenSCAD version 2026.11.05.nightly
 PythonSCAD : PythonSCAD version 1.1.2
 Python     : Python 3.12.3
