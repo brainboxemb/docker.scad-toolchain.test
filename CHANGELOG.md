@@ -18,10 +18,29 @@ not release-history entries here.
 
 | Test-suite version | Main change |
 | --- | --- |
+| `v0.6.2` | Validate NopSCADlib publication dependencies in the drawing profile |
 | `v0.6.1` | Report drawing dependencies/image size and qualify drawsvg composition |
 | `v0.6.0` | Three-profile qualification with code-driven Inkscape drawing publication |
 | `v0.5.1` | Functional external consumer coverage for `openscad-new-dimensions` SVG drawings |
 | `v0.5.0` | Profile-aware external validation for the OpenSCAD-focused and full runtime image family |
+
+## v0.6.2
+
+### Added
+
+- External drawing-profile verification for the new runtime prerequisites:
+  ImageMagick 7 (`magick`), `vcs2l` (`vcs import`), Markdown,
+  `codespell` and `colorama`.
+- Functional exercises: process an actual OpenSCAD-rendered PNG,
+  generate table-enabled HTML, run codespell and clone an exact-SHA
+  local git dependency through the published vcs2l command.
+- Evidence in the permanent three-profile report.
+
+### Qualification target
+
+```text
+test-v0.6.2-toolchain-v0.6.2
+```
 
 ## v0.6.1
 
