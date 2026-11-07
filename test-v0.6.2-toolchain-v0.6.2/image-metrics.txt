@@ -1,0 +1,3 @@
+openscad pull_mode=fresh-runner image=ghcr.io/brainboxemb/scad-toolchain-openscad:v0.6.2 pull_ms=17867 compressed_bytes=328614704 unpacked_bytes=963056074
+drawing pull_mode=shared-layer-reuse image=ghcr.io/brainboxemb/scad-toolchain-drawing:v0.6.2 pull_ms=7344 compressed_bytes=397490336 unpacked_bytes=1170018750
+full pull_mode=shared-layer-reuse image=ghcr.io/brainboxemb/scad-toolchain:v0.6.2 pull_ms=8863 compressed_bytes=450176202 unpacked_bytes=1315673487

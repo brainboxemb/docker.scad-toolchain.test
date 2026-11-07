@@ -1,0 +1,5 @@
+repositories:
+  ConsumerFixture:
+    type: git
+    url: file:///work/out/drawing-profile/nopscadlib-publishing/upstream
+    version: 4d2f38b9817e2c10da8bce1f85b0552452b749f5
