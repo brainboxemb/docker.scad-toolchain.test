@@ -308,6 +308,11 @@ with Image.open(png) as image:
 assert pdf.read_bytes().startswith(b"%PDF-")
 print("External drawing publication output validated")
 PY
+
+  echo
+  echo "== NopSCADlib drawing prerequisites =="
+  run_checked "NopSCADlib drawing consumer prerequisites" \
+    bash "$ROOT/scripts/test-nopscadlib-publishing.sh" "$OUT"
 fi
 
 # -------------------------------------------------------------------
